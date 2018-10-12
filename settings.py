@@ -11,3 +11,6 @@ TITLE = "Game"
 
 #Pixel por segundo
 PLAYER_SPEED = 200
+
+PLAYER_IMAGE = "player.png"
+PLAYER_IMAGE_ROT = "player_rot.png"
