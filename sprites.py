@@ -117,6 +117,18 @@ class Wall(pg.sprite.Sprite):
         self.rect.x = x * TILESIZE
         self.rect.y = y * TILESIZE
 
+class Ground(pg.sprite.Sprite):
+    def __init__(self, game, x, y):
+        self.groups = game.all_sprites, game.ground
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.image = pg.Surface((TILESIZE, TILESIZE))
+        self.image.fill((139,69,19))
+        self.rect = self.image.get_rect()
+        self.pos = vec(x, y)
+        self.rect.x = x * TILESIZE
+        self.rect.y = y * TILESIZE
+
 #========================================================================
 
 class SwordAttack(pg.sprite.Sprite):
