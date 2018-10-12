@@ -15,11 +15,14 @@ class Game:
     def new(self):
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
+        self.ground = pg.sprite.Group()
 
         for row, tiles in enumerate(self.map.data):
             for col, tile in enumerate(tiles):
                 if tile == '1':
                     Wall(self,col,row)
+                else:
+                    Ground(self,col,row)
                 if tile == 'P':
                     self.player = Player(self,col,row)
         self.camera = Camera(self.map.width, self.map.height)
@@ -51,16 +54,21 @@ class Game:
 
     def draw(self):
         self.screen.fill((0,0,0))
-        self.draw_grid()
-        for sprite in self.all_sprites:
+
+        for sprite in self.ground:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
+        for sprite in self.walls:
+            self.screen.blit(sprite.image, self.camera.apply(sprite))
+
+        self.screen.blit(self.player.image, self.camera.apply(self.player))
+
         pg.display.flip()
 
-    def draw_grid(self):
-        for x in range(0,WIDTH,TILESIZE):
-            pg.draw.line(self.screen,(100,100,100),(x,0),(x,HEIGHT))
-        for y in range(0,WIDTH,TILESIZE):
-            pg.draw.line(self.screen,(100,100,100),(0,y),(WIDTH,y))
+    # def draw_grid(self):
+    #     for x in range(0,WIDTH,TILESIZE):
+    #         pg.draw.line(self.screen,(100,100,100),(x,0),(x,HEIGHT))
+    #     for y in range(0,WIDTH,TILESIZE):
+    #         pg.draw.line(self.screen,(100,100,100),(0,y),(WIDTH,y))
 
 g = Game()
 g.new()
