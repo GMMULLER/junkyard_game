@@ -19,3 +19,4 @@ PLAYER_ATTACK_RATE = 300
 
 ENEMY_ROT_SPEED = 15
 ENEMY1_IMG = "Sentinela.png"
+ENEMY1_2_IMG = "Sentinela.png"

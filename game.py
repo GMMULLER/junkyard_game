@@ -18,6 +18,7 @@ class Game:
         self.walls = pg.sprite.Group()
         self.ground = pg.sprite.Group()
         self.enemys = pg.sprite.Group()
+        enemy1_spawn_data = []
 
         for tile_object in self.map.tmxdata.objects:
             if tile_object.name == "player":
@@ -25,9 +26,19 @@ class Game:
             if tile_object.name == "wall":
                 Obstacle(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
             if tile_object.name == "enemy1":
-                SentinelaA1(self, tile_object.x, tile_object.y)
+                enemy1_spawn_data.append(tile_object)
+
+        self.spawn_enemys(enemy1_spawn_data)
 
         self.camera = Camera(self.map.width, self.map.height)
+
+    def spawn_enemys(self, array):
+        random.shuffle(array)
+        for k, tile_object in enumerate(array):
+            #Faz o spawn de metade dos inimigos
+            if(k % 2 == 0):
+                print("Spawn!")
+                SentinelaA(self, tile_object.x, tile_object.y, random.randint(1,2))
 
     def load_data(self):
         #Cria as variáveis com os diretórios
@@ -44,6 +55,8 @@ class Game:
         self.player_img_rot = pg.image.load(path.join(img_folder, PLAYER_IMAGE_ROT)).convert_alpha()
 
         self.enemy1_img = pg.image.load(path.join(img_folder, ENEMY1_IMG)).convert_alpha()
+        self.enemy1_2_img = pg.image.load(path.join(img_folder, ENEMY1_2_IMG)).convert_alpha()
+
 
     def run(self):
         self.running = True

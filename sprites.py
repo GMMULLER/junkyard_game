@@ -120,14 +120,11 @@ class Player(pg.sprite.Sprite):
                 if(hit):
                     sprite.set_damage(self.attack_power)
                 print(hit)
-        # def attack(self):
-        #     if(self.diag_mov):
-        #         if(self.rot_angle == 45):
-        #             self.atk_collision_rect1 = pg.Rect(self.rect.x + 5 + 32)
-        #             self.atk_collision_rect2 = pg.Rect()
 
-class SentinelaA1(pg.sprite.Sprite):
-    def __init__(self, game, x, y):
+#========================================================================
+
+class SentinelaA(pg.sprite.Sprite):
+    def __init__(self, game, x, y, type):
         self.groups = game.all_sprites, game.enemys
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
@@ -150,20 +147,36 @@ class SentinelaA1(pg.sprite.Sprite):
     def set_damage(self, value):
         self.life_points -= value
 
-#========================================================================
+class SentinelaA(pg.sprite.Sprite):
+    def __init__(self, game, x, y, type):
+        self.groups = game.all_sprites, game.enemys
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        if(type == 1):
+            self.image = self.game.enemy1_img
+        if(type == 2):
+            self.image = self.game.enemy1_2_img
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.pos = vec(x, y)
+        self.rot = 0
+        self.life_points = 250
 
-# class Wall(pg.sprite.Sprite):
-#     def __init__(self, game, x, y):
-#         self.groups = game.all_sprites, game.walls
-#         #Passando como parâmetro os grupos em que o Sprite está
-#         pg.sprite.Sprite.__init__(self, self.groups)
-#         self.game = game
-#         self.image = pg.Surface((TILESIZE, TILESIZE))
-#         self.image.fill((0,0,255))
-#         self.rect = self.image.get_rect()
-#         self.pos = vec(x, y)
-#         self.rect.x = x * TILESIZE
-#         self.rect.y = y * TILESIZE
+    def update(self):
+        if(self.life_points <= 0):
+            self.kill()
+        self.rot = (self.rot + ENEMY_ROT_SPEED * self.game.dt) % 360
+        self.image = pg.transform.rotate(self.game.enemy1_img, self.rot)
+        self.rect = self.image.get_rect()
+        self.rect.center = self.pos
+
+    def set_damage(self, value):
+        self.life_points -= value
+
+
+
+#========================================================================
 
 class Obstacle(pg.sprite.Sprite):
     def __init__(self, game, x, y, width, height):
@@ -176,35 +189,4 @@ class Obstacle(pg.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
-# class Muro(pg.sprite.Sprite):
-#     def __init__(self, game, x, y):
-#         self.groups = game.all_sprites, game.muros
-#         pg.sprite.Sprite.__init__(self, self.groups)
-#         self.game = game
-#         self.image = pg.Surface((TILESIZE * 2, TILESIZE * 2))
-#         self.image.fill((91,165,59))
-#         self.rect = self.image.get_rect()
-#         self.pos = vec(x, y)
-#         self.rect.x = x * TILESIZE
-#         self.rect.y = y * TILESIZE
-#
-# class Ground(pg.sprite.Sprite):
-#     def __init__(self, game, x, y):
-#         self.groups = game.all_sprites, game.ground
-#         pg.sprite.Sprite.__init__(self, self.groups)
-#         self.game = game
-#         self.image = pg.Surface((TILESIZE, TILESIZE))
-#         self.image.fill((139,69,19))
-#         self.rect = self.image.get_rect()
-#         self.pos = vec(x, y)
-#         self.rect.x = x * TILESIZE
-#         self.rect.y = y * TILESIZE
-
 #========================================================================
-
-class MeleeAttack(pg.sprite.Sprite):
-    def __init__(self, game, user, angle = 0):
-        pg.sprite.Sprite.__init__(self)
-        self.game = game
-        self.user = user
-        self.pos = vec()
