@@ -1,4 +1,5 @@
 import pygame as pg
+import random
 from settings import *
 from sprites import *
 from tilemap import *
@@ -16,23 +17,33 @@ class Game:
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
         self.ground = pg.sprite.Group()
+        self.enemys = pg.sprite.Group()
 
-        for row, tiles in enumerate(self.map.data):
-            for col, tile in enumerate(tiles):
-                if tile == '1':
-                    Wall(self,col,row)
-                else:
-                    Ground(self,col,row)
-                if tile == 'P':
-                    self.player = Player(self,col,row)
+        for tile_object in self.map.tmxdata.objects:
+            if tile_object.name == "player":
+                self.player = Player(self, tile_object.x, tile_object.y)
+            if tile_object.name == "wall":
+                Obstacle(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
+            if tile_object.name == "enemy1":
+                SentinelaA1(self, tile_object.x, tile_object.y)
+
         self.camera = Camera(self.map.width, self.map.height)
 
     def load_data(self):
+        #Cria as variáveis com os diretórios
         game_folder = path.dirname(__file__)
         img_folder = path.join(game_folder, 'images')
-        self.map = Map(path.join(game_folder, 'map.txt'))
+        map_folder = path.join(game_folder, 'maps')
+        self.map = TiledMap(path.join(map_folder, 'map1.tmx'))
+
+        #Superfície com o mapa desenhado
+        self.map_img = self.map.make_map()
+        self.map_rect = self.map_img.get_rect()
+
         self.player_img = pg.image.load(path.join(img_folder, PLAYER_IMAGE)).convert_alpha()
         self.player_img_rot = pg.image.load(path.join(img_folder, PLAYER_IMAGE_ROT)).convert_alpha()
+
+        self.enemy1_img = pg.image.load(path.join(img_folder, ENEMY1_IMG)).convert_alpha()
 
     def run(self):
         self.running = True
@@ -53,22 +64,10 @@ class Game:
         self.camera.update(self.player)
 
     def draw(self):
-        self.screen.fill((0,0,0))
-
-        for sprite in self.ground:
+        self.screen.blit(self.map_img, self.camera.apply_rect(self.map_rect))
+        for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
-        for sprite in self.walls:
-            self.screen.blit(sprite.image, self.camera.apply(sprite))
-
-        self.screen.blit(self.player.image, self.camera.apply(self.player))
-
         pg.display.flip()
-
-    # def draw_grid(self):
-    #     for x in range(0,WIDTH,TILESIZE):
-    #         pg.draw.line(self.screen,(100,100,100),(x,0),(x,HEIGHT))
-    #     for y in range(0,WIDTH,TILESIZE):
-    #         pg.draw.line(self.screen,(100,100,100),(0,y),(WIDTH,y))
 
 g = Game()
 g.new()
