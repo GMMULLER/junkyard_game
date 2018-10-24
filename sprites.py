@@ -30,6 +30,8 @@ class Player(pg.sprite.Sprite):
         self.attack_rect_1 = pg.Rect((0,0),(1,1))
         self.attack_rect_2 = pg.Rect((0,0),(1,1))
 
+        #self.dash = {}
+
     def get_keys(self):
         self.vel = vec(0, 0)
         keys = pg.key.get_pressed()
@@ -168,6 +170,9 @@ class Player(pg.sprite.Sprite):
         for sprite in self.game.interactables:
             if(sprite.rect.collidepoint(self.pos.x - 5,self.pos.y + self.rect.width)):
                 sprite.interaction()
+
+    #def dash_move(self):
+        #O dash ocorre em 60 frames
 
 #========================================================================
 
