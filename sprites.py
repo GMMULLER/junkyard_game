@@ -11,10 +11,6 @@ class Player(pg.sprite.Sprite):
         #Criando a imagem do Sprite
         self.image = self.game.player_img
         self.rect = self.image.get_rect()
-
-        # self.image = pg.transform.rotate(self.game.player_img, 45)
-        # self.rect = self.image.get_rect()
-
         #Inicializando a velocidade
         self.vel = vec(0, 0)
         #Colocando a posição inicial
@@ -30,6 +26,9 @@ class Player(pg.sprite.Sprite):
         self.life_points = 100
         self.last_attack = 0
         self.attack_state = False
+        #Inicializando os retângulos de colisão de ataque
+        self.attack_rect_1 = pg.Rect((0,0),(1,1))
+        self.attack_rect_2 = pg.Rect((0,0),(1,1))
 
     def get_keys(self):
         self.vel = vec(0, 0)
@@ -46,8 +45,6 @@ class Player(pg.sprite.Sprite):
         if keys[pg.K_DOWN] or keys[pg.K_s]:
             self.vel.y = PLAYER_SPEED
             self.rot_img = 270
-
-        self.rot_angle = self.rot_img
 
         if keys[pg.K_z]:
             now = pg.time.get_ticks()
@@ -86,6 +83,8 @@ class Player(pg.sprite.Sprite):
                     self.rot_angle = 135
         else:
             self.diag_mov = False
+            self.rot_angle = self.rot_img
+
 
     def update(self):
         self.get_keys()
@@ -125,21 +124,49 @@ class Player(pg.sprite.Sprite):
 
     def melee_attack(self):
         self.last_attack = pg.time.get_ticks()
+
         if(self.rot_angle == 0):
             self.attack_rect_1 = pg.Rect((self.pos.x + self.rect.width + 5,self.pos.y - self.rect.height/2),(64, 128))
+            self.attack_rect_2 = pg.Rect((0,0),(1,1))
         elif(self.rot_angle == 45):
-            self.attack_rect_1 = pg.Rect((self.pos.x + self.rect.width + 5,self.pos.y - self.rect.height/2),(64, 128))
-            
+            self.attack_rect_1 = pg.Rect((self.pos.x + self.rect.width/2, self.pos.y - 5 - self.rect.height),(32, 64))
+            self.attack_rect_2 = pg.Rect((self.attack_rect_1.x + self.attack_rect_1.width + 1 ,self.attack_rect_1.y), (32, 96))
+        elif(self.rot_angle == 90):
+            self.attack_rect_1 = pg.Rect((self.pos.x - self.rect.width/2, self.pos.y - 5 - 64), (128, 64))
+            self.attack_rect_2 = pg.Rect((0,0),(1,1))
+        elif(self.rot_angle == 135):
+            self.attack_rect_1 = pg.Rect((self.pos.x, self.rect.y - self.rect.height - 5),(32, 64))
+            self.attack_rect_2 = pg.Rect((self.attack_rect_1.x - self.rect.width/2 - 1, self.attack_rect_1.y), (32, 96))
+        elif(self.rot_angle == 180):
+            self.attack_rect_1 = pg.Rect((self.pos.x - self.rect.width - 5, self.pos.y - self.rect.height/2), (64, 128))
+            self.attack_rect_2 = pg.Rect((0,0),(1,1))
+        elif(self.rot_angle == 225):
+            self.attack_rect_1 = pg.Rect((self.rect.x, self.rect.y + self.rect.height + 5),(32,64))
+            self.attack_rect_2 = pg.Rect((self.rect.x - self.rect.width/2, self.rect.y + self.rect.height/2),(32,101))
+        elif(self.rot_angle == 270):
+            self.attack_rect_1 = pg.Rect((self.pos.x - self.rect.width/2, self.pos.y + self.rect.height + 5),(128, 64))
+        elif(self.rot_angle == 315):
+            self.attack_rect_1 = pg.Rect((self.pos.x + self.rect.width/2 + 5, self.pos.y + self.rect.height + 5),(32,64))
+            self.attack_rect_2 = pg.Rect((self.pos.x + self.rect.width + 5, self.pos.y + self.rect.height/2),(32,101))
+
 
         for sprite in self.game.enemys:
-            hit = pg.Rect.colliderect(self.attack_rect_1, sprite.rect)
-            if(hit):
+            if(self.attack_rect_1.width > 1):
+                hit1 = pg.Rect.colliderect(self.attack_rect_1, sprite.rect)
+            else:
+                hit1 = 0
+
+            if(self.attack_rect_2.width > 1):
+                hit2 = pg.Rect.colliderect(self.attack_rect_2, sprite.rect)
+            else:
+                hit2 = 0
+
+            if(hit1 or hit2):
                 sprite.set_damage(self.attack_power)
 
     def detect_interaction(self):
         for sprite in self.game.interactables:
             if(sprite.rect.collidepoint(self.pos.x - 5,self.pos.y + self.rect.width)):
-                print("Interação!")
                 sprite.interaction()
 
 #========================================================================

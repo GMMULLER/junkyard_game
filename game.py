@@ -94,6 +94,9 @@ class Game:
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
 
+        pg.draw.rect(self.screen, (255,255,255), self.camera.apply_rect(self.player.attack_rect_1), 3)
+        pg.draw.rect(self.screen, (255,255,255), self.camera.apply_rect(self.player.attack_rect_2), 3)
+
         pg.display.flip()
 
 g = Game()
