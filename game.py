@@ -12,12 +12,15 @@ class Game:
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
         self.load_data()
+        self.day = 0
 
     def new(self):
+        self.day += 1
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
         self.ground = pg.sprite.Group()
         self.enemys = pg.sprite.Group()
+        self.interactables = pg.sprite.Group()
         enemy1_spawn_data = []
 
         for tile_object in self.map.tmxdata.objects:
@@ -27,6 +30,8 @@ class Game:
                 Obstacle(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
             if tile_object.name == "enemy1":
                 enemy1_spawn_data.append(tile_object)
+            if tile_object.name == "plug":
+                Plug(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
 
         self.spawn_enemys(enemy1_spawn_data)
 
@@ -37,8 +42,17 @@ class Game:
         for k, tile_object in enumerate(array):
             #Faz o spawn de metade dos inimigos
             if(k % 2 == 0):
-                print("Spawn!")
                 SentinelaA(self, tile_object.x, tile_object.y, random.randint(1,2))
+
+    def new_day(self):
+        self.new()
+        for sprite in self.interactables:
+            if(isinstance(sprite, Plug)):
+                self.plug = sprite
+                break
+
+        self.player.pos.x = self.plug.pos.x
+        self.player.pos.y = self.plug.pos.y + 2 + self.plug.rect.height
 
     def load_data(self):
         #Cria as variáveis com os diretórios
@@ -56,7 +70,6 @@ class Game:
 
         self.enemy1_img = pg.image.load(path.join(img_folder, ENEMY1_IMG)).convert_alpha()
         self.enemy1_2_img = pg.image.load(path.join(img_folder, ENEMY1_2_IMG)).convert_alpha()
-
 
     def run(self):
         self.running = True
@@ -80,6 +93,7 @@ class Game:
         self.screen.blit(self.map_img, self.camera.apply_rect(self.map_rect))
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
+
         pg.display.flip()
 
 g = Game()

@@ -11,6 +11,10 @@ class Player(pg.sprite.Sprite):
         #Criando a imagem do Sprite
         self.image = self.game.player_img
         self.rect = self.image.get_rect()
+
+        # self.image = pg.transform.rotate(self.game.player_img, 45)
+        # self.rect = self.image.get_rect()
+
         #Inicializando a velocidade
         self.vel = vec(0, 0)
         #Colocando a posição inicial
@@ -24,8 +28,8 @@ class Player(pg.sprite.Sprite):
         #Inicializa os atributos do Player
         self.attack_power = 20
         self.life_points = 100
-
         self.last_attack = 0
+        self.attack_state = False
 
     def get_keys(self):
         self.vel = vec(0, 0)
@@ -48,7 +52,14 @@ class Player(pg.sprite.Sprite):
         if keys[pg.K_z]:
             now = pg.time.get_ticks()
             if(now - self.last_attack > PLAYER_ATTACK_RATE):
-                self.melee_attack()
+                if(not self.attack_state):
+                    self.melee_attack()
+                    self.attack_state = True
+        else:
+            self.attack_state = False
+
+        if keys[pg.K_c]:
+            self.detect_interaction()
 
         if self.vel.x != 0 and self.vel.y != 0:
             self.diag_mov = True
@@ -83,6 +94,7 @@ class Player(pg.sprite.Sprite):
             self.image = pg.transform.rotate(self.game.player_img_rot, self.rot_img)
         else:
             self.image = pg.transform.rotate(self.game.player_img, self.rot_img)
+
         #Muda a posição do sprite
         self.pos += self.vel * self.game.dt
         #Move o Sprite e testa colisões
@@ -115,11 +127,20 @@ class Player(pg.sprite.Sprite):
         self.last_attack = pg.time.get_ticks()
         if(self.rot_angle == 0):
             self.attack_rect_1 = pg.Rect((self.pos.x + self.rect.width + 5,self.pos.y - self.rect.height/2),(64, 128))
-            for sprite in self.game.enemys:
-                hit = pg.Rect.colliderect(self.attack_rect_1, sprite.rect)
-                if(hit):
-                    sprite.set_damage(self.attack_power)
-                print(hit)
+        elif(self.rot_angle == 45):
+            self.attack_rect_1 = pg.Rect((self.pos.x + self.rect.width + 5,self.pos.y - self.rect.height/2),(64, 128))
+            
+
+        for sprite in self.game.enemys:
+            hit = pg.Rect.colliderect(self.attack_rect_1, sprite.rect)
+            if(hit):
+                sprite.set_damage(self.attack_power)
+
+    def detect_interaction(self):
+        for sprite in self.game.interactables:
+            if(sprite.rect.collidepoint(self.pos.x - 5,self.pos.y + self.rect.width)):
+                print("Interação!")
+                sprite.interaction()
 
 #========================================================================
 
@@ -174,8 +195,6 @@ class SentinelaA(pg.sprite.Sprite):
     def set_damage(self, value):
         self.life_points -= value
 
-
-
 #========================================================================
 
 class Obstacle(pg.sprite.Sprite):
@@ -186,7 +205,15 @@ class Obstacle(pg.sprite.Sprite):
         self.game = game
         self.rect = pg.Rect(x, y, width, height)
         self.pos = vec(x, y)
-        self.rect.x = x
-        self.rect.y = y
 
+class Plug(pg.sprite.Sprite):
+    def __init__(self, game, x, y, width, height):
+        self.groups = game.interactables
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.rect = pg.Rect(x, y, width, height)
+        self.pos = vec(x, y)
+
+    def interaction(self):
+        self.game.new_day()
 #========================================================================

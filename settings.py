@@ -18,5 +18,5 @@ PLAYER_IMAGE_ROT = "player_rot.png"
 PLAYER_ATTACK_RATE = 300
 
 ENEMY_ROT_SPEED = 15
-ENEMY1_IMG = "Sentinela.png"
-ENEMY1_2_IMG = "Sentinela.png"
+ENEMY1_IMG = "Sentinel.png"
+ENEMY1_2_IMG = "Sentinel.png"
