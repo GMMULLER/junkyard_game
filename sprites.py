@@ -30,7 +30,18 @@ class Player(pg.sprite.Sprite):
         self.attack_rect_1 = pg.Rect((0,0),(1,1))
         self.attack_rect_2 = pg.Rect((0,0),(1,1))
 
-        #self.dash = {}
+        self.is_dashing = False
+        self.dash_frame = 0
+        self.x_state = False
+
+        self.dash = []
+        contador = 1
+        for i in range(0,26):
+            if(i > 12):
+                contador -= 55
+            else:
+                contador += 55
+            self.dash.append(contador)
 
     def get_keys(self):
         self.vel = vec(0, 0)
@@ -59,6 +70,13 @@ class Player(pg.sprite.Sprite):
 
         if keys[pg.K_c]:
             self.detect_interaction()
+
+        if keys[pg.K_x]:
+            if(not self.x_state):
+                self.is_dashing = True
+                self.x_state = True
+        else:
+            self.x_state = False
 
         if self.vel.x != 0 and self.vel.y != 0:
             self.diag_mov = True
@@ -89,7 +107,8 @@ class Player(pg.sprite.Sprite):
 
 
     def update(self):
-        self.get_keys()
+        if(not self.is_dashing):
+            self.get_keys()
         #Rotaciona a imagem
         if(self.diag_mov):
             self.image = pg.transform.rotate(self.game.player_img_rot, self.rot_img)
@@ -97,7 +116,12 @@ class Player(pg.sprite.Sprite):
             self.image = pg.transform.rotate(self.game.player_img, self.rot_img)
 
         #Muda a posição do sprite
-        self.pos += self.vel * self.game.dt
+        if(not self.is_dashing):
+            self.pos += self.vel * self.game.dt
+        else:
+            self.dash_move()
+
+        print(self.is_dashing)
         #Move o Sprite e testa colisões
         self.rect.x = self.pos.x
         self.collide_with_walls('x')
@@ -171,8 +195,35 @@ class Player(pg.sprite.Sprite):
             if(sprite.rect.collidepoint(self.pos.x - 5,self.pos.y + self.rect.width)):
                 sprite.interaction()
 
-    #def dash_move(self):
-        #O dash ocorre em 60 frames
+    def dash_move(self):
+        #Ou seja se essa é a primeira chamada da sequência
+        if(self.dash_frame < len(self.dash)):
+            if(self.rot_angle == 0):
+                self.pos.x += self.dash[self.dash_frame] * self.game.dt
+            elif(self.rot_angle == 45):
+                self.pos.x += self.dash[self.dash_frame] * self.game.dt * 0.7071
+                self.pos.y -= self.dash[self.dash_frame] * self.game.dt * 0.7071
+            elif(self.rot_angle == 90):
+                self.pos.y -= self.dash[self.dash_frame] * self.game.dt
+            elif(self.rot_angle == 135):
+                self.pos.x -= self.dash[self.dash_frame] * self.game.dt * 0.7071
+                self.pos.y -= self.dash[self.dash_frame] * self.game.dt * 0.7071
+            elif(self.rot_angle == 180):
+                self.pos.x -= self.dash[self.dash_frame] * self.game.dt
+            elif(self.rot_angle == 225):
+                self.pos.x -= self.dash[self.dash_frame] * self.game.dt * 0.7071
+                self.pos.y += self.dash[self.dash_frame] * self.game.dt * 0.7071
+            elif(self.rot_angle == 270):
+                self.pos.y += self.dash[self.dash_frame] * self.game.dt
+            elif(self.rot_angle == 315):
+                self.pos.x += self.dash[self.dash_frame] * self.game.dt * 0.7071
+                self.pos.y += self.dash[self.dash_frame] * self.game.dt * 0.7071
+
+
+            self.dash_frame += 1
+        else:
+            self.is_dashing = False
+            self.dash_frame = 0
 
 #========================================================================
 
