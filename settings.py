@@ -9,14 +9,14 @@ FPS = 60
 
 TITLE = "Game"
 
-#Pixel por segundo
+#player
 PLAYER_SPEED = 250
-
 PLAYER_IMAGE = "player.png"
 PLAYER_IMAGE_ROT = "player_rot.png"
-
 PLAYER_ATTACK_RATE = 300
+PLAYER_HEALTH = 100
 
-ENEMY_ROT_SPEED = 15
+#enemy
+ENEMY_ROT_SPEED = 25
 ENEMY1_IMG = "Sentinel.png"
 ENEMY1_2_IMG = "Sentinel.png"

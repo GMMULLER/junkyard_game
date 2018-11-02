@@ -1,6 +1,7 @@
 import pygame as pg
 from settings import *
 vec = pg.math.Vector2
+import random
 
 class Player(pg.sprite.Sprite):
     def __init__(self, game, x, y):
@@ -23,7 +24,8 @@ class Player(pg.sprite.Sprite):
         self.diag_mov = False
         #Inicializa os atributos do Player
         self.attack_power = 20
-        self.life_points = 100
+        self.health = PLAYER_HEALTH
+        self.damage_delay = 0
         self.last_attack = 0
         self.attack_state = False
         #Inicializando os retângulos de colisão de ataque
@@ -107,6 +109,8 @@ class Player(pg.sprite.Sprite):
 
 
     def update(self):
+        if(self.health <= 0):
+            self.game.new_day()
         if(not self.is_dashing):
             self.get_keys()
         #Rotaciona a imagem
@@ -121,7 +125,6 @@ class Player(pg.sprite.Sprite):
         else:
             self.dash_move()
 
-        print(self.is_dashing)
         #Move o Sprite e testa colisões
         self.rect.x = self.pos.x
         self.collide_with_walls('x')
@@ -132,25 +135,27 @@ class Player(pg.sprite.Sprite):
         if dir == 'x':
             hits = pg.sprite.spritecollide(self,self.game.walls, False)
             if hits:
-                if self.vel.x > 0:
+                if hits[0].rect.centerx > self.rect.centerx:
                     self.pos.x = hits[0].rect.left - self.rect.width
-                if self.vel.x < 0:
+                if hits[0].rect.centerx < self.rect.centerx:
                     self.pos.x = hits[0].rect.right
                 self.vel.x = 0
                 self.rect.x = self.pos.x
+                return 1
+            return 0
         if dir == 'y':
             hits = pg.sprite.spritecollide(self,self.game.walls, False)
             if hits:
-                if self.vel.y > 0:
+                if hits[0].rect.centery > self.rect.centery:
                     self.pos.y = hits[0].rect.top - self.rect.height
-                if self.vel.y < 0:
+                if hits[0].rect.centery < self.rect.centery:
                     self.pos.y = hits[0].rect.bottom
                 self.vel.y = 0
                 self.rect.y = self.pos.y
-
+                return 1
+            return 0
     def melee_attack(self):
         self.last_attack = pg.time.get_ticks()
-
         if(self.rot_angle == 0):
             self.attack_rect_1 = pg.Rect((self.pos.x + self.rect.width + 5,self.pos.y - self.rect.height/2),(64, 128))
             self.attack_rect_2 = pg.Rect((0,0),(1,1))
@@ -171,6 +176,7 @@ class Player(pg.sprite.Sprite):
             self.attack_rect_2 = pg.Rect((self.rect.x - self.rect.width/2, self.rect.y + self.rect.height/2),(32,101))
         elif(self.rot_angle == 270):
             self.attack_rect_1 = pg.Rect((self.pos.x - self.rect.width/2, self.pos.y + self.rect.height + 5),(128, 64))
+            self.attack_rect_2 = pg.Rect((0,0),(1,1))
         elif(self.rot_angle == 315):
             self.attack_rect_1 = pg.Rect((self.pos.x + self.rect.width/2 + 5, self.pos.y + self.rect.height + 5),(32,64))
             self.attack_rect_2 = pg.Rect((self.pos.x + self.rect.width + 5, self.pos.y + self.rect.height/2),(32,101))
@@ -196,7 +202,6 @@ class Player(pg.sprite.Sprite):
                 sprite.interaction()
 
     def dash_move(self):
-        #Ou seja se essa é a primeira chamada da sequência
         if(self.dash_frame < len(self.dash)):
             if(self.rot_angle == 0):
                 self.pos.x += self.dash[self.dash_frame] * self.game.dt
@@ -218,8 +223,6 @@ class Player(pg.sprite.Sprite):
             elif(self.rot_angle == 315):
                 self.pos.x += self.dash[self.dash_frame] * self.game.dt * 0.7071
                 self.pos.y += self.dash[self.dash_frame] * self.game.dt * 0.7071
-
-
             self.dash_frame += 1
         else:
             self.is_dashing = False
@@ -238,45 +241,52 @@ class SentinelaA(pg.sprite.Sprite):
         self.rect.y = y
         self.pos = vec(x, y)
         self.rot = 0
-        self.life_points = 250
+        self.health = 250
+        self.rot_delay = 0
+        self.enemy_rot_speed = ENEMY_ROT_SPEED
 
     def update(self):
-        if(self.life_points <= 0):
+        if(self.health <= 0):
             self.kill()
-        self.rot = (self.rot + ENEMY_ROT_SPEED * self.game.dt) % 360
+        if(pg.time.get_ticks() - self.rot_delay > 3500):
+            self.rot_delay = pg.time.get_ticks()
+            if(random.randint(1,3) == 1):
+                self.enemy_rot_speed *= -1
+
+        self.rot = (self.rot + self.enemy_rot_speed * self.game.dt) % 360
         self.image = pg.transform.rotate(self.game.enemy1_img, self.rot)
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
 
     def set_damage(self, value):
-        self.life_points -= value
+        self.health -= value
 
-class SentinelaA(pg.sprite.Sprite):
-    def __init__(self, game, x, y, type):
-        self.groups = game.all_sprites, game.enemys
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        if(type == 1):
-            self.image = self.game.enemy1_img
-        if(type == 2):
-            self.image = self.game.enemy1_2_img
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        self.pos = vec(x, y)
-        self.rot = 0
-        self.life_points = 250
-
-    def update(self):
-        if(self.life_points <= 0):
-            self.kill()
-        self.rot = (self.rot + ENEMY_ROT_SPEED * self.game.dt) % 360
-        self.image = pg.transform.rotate(self.game.enemy1_img, self.rot)
-        self.rect = self.image.get_rect()
-        self.rect.center = self.pos
-
-    def set_damage(self, value):
-        self.life_points -= value
+# class SentinelaA(pg.sprite.Sprite):
+#     def __init__(self, game, x, y, type):
+#         self.groups = game.all_sprites, game.enemys
+#         pg.sprite.Sprite.__init__(self, self.groups)
+#         self.game = game
+#         if(type == 1):
+#             self.image = self.game.enemy1_img
+#         if(type == 2):
+#             self.image = self.game.enemy1_2_img
+#         self.rect = self.image.get_rect()
+#         self.rect.x = x
+#         self.rect.y = y
+#         self.pos = vec(x, y)
+#         self.rot = 0
+#         self.life_points = 250
+#
+#     def update(self):
+#         if(self.life_points <= 0):
+#             self.kill()
+#         self.rot = (self.rot + ENEMY_ROT_SPEED * self.game.dt) % 360
+#         self.image = pg.transform.rotate(self.game.enemy1_img, self.rot)
+#         self.rect = self.image.get_rect()
+#         self.rect.center = self.pos
+#
+#     def set_damage(self, value):
+#         self.life_points -= value
 
 #========================================================================
 

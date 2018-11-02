@@ -89,6 +89,12 @@ class Game:
         self.all_sprites.update()
         self.camera.update(self.player)
 
+        if(pg.time.get_ticks() - self.player.damage_delay > 1500):
+            hits = pg.sprite.spritecollide(self.player, self.enemys, False)
+            for hit in hits:
+                self.player.damage_delay = pg.time.get_ticks()
+                self.player.health -= 10
+
     def draw(self):
         self.screen.blit(self.map_img, self.camera.apply_rect(self.map_rect))
         for sprite in self.all_sprites:
