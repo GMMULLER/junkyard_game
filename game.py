@@ -21,6 +21,7 @@ class Game:
         self.ground = pg.sprite.Group()
         self.enemys = pg.sprite.Group()
         self.interactables = pg.sprite.Group()
+        self.rects_debug = []
         enemy1_spawn_data = []
 
         for tile_object in self.map.tmxdata.objects:
@@ -103,7 +104,14 @@ class Game:
         pg.draw.rect(self.screen, (255,255,255), self.camera.apply_rect(self.player.attack_rect_1), 3)
         pg.draw.rect(self.screen, (255,255,255), self.camera.apply_rect(self.player.attack_rect_2), 3)
 
+        for rect in self.rects_debug:
+            pg.draw.rect(self.screen, (255,255,255), self.camera.apply_rect(rect), 3)
+
+        self.rects_debug = []
         pg.display.flip()
+
+    def draw_rects(self, rect):
+        self.rects_debug.append(rect)
 
 g = Game()
 g.new()

@@ -107,7 +107,6 @@ class Player(pg.sprite.Sprite):
             self.diag_mov = False
             self.rot_angle = self.rot_img
 
-
     def update(self):
         if(self.health <= 0):
             self.game.new_day()
@@ -154,6 +153,7 @@ class Player(pg.sprite.Sprite):
                 self.rect.y = self.pos.y
                 return 1
             return 0
+
     def melee_attack(self):
         self.last_attack = pg.time.get_ticks()
         if(self.rot_angle == 0):
@@ -244,6 +244,7 @@ class SentinelaA(pg.sprite.Sprite):
         self.health = 250
         self.rot_delay = 0
         self.enemy_rot_speed = ENEMY_ROT_SPEED
+        self.attack_mode = False
 
     def update(self):
         if(self.health <= 0):
@@ -257,9 +258,36 @@ class SentinelaA(pg.sprite.Sprite):
         self.image = pg.transform.rotate(self.game.enemy1_img, self.rot)
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
+        self.player_detection()
+        if(attack_mode):
+            self.attack()
 
     def set_damage(self, value):
         self.health -= value
+
+    def player_detection(self):
+        if(self.rot >= 45 and self.rot < 135):
+            detection_rect = pg.Rect((self.pos.x - 48, self.pos.y - 64 - 48), (96,64))
+            self.game.draw_rects(detection_rect)
+            hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
+        elif(self.rot < 45 or self.rot >= 315):
+            detection_rect = pg.Rect((self.pos.x + ENEMY_WIDTH/2, self.pos.y - 48), (64,96))
+            self.game.draw_rects(detection_rect)
+            hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
+        elif(self.rot >= 135 and self.rot < 225):
+            detection_rect = pg.Rect((self.pos.x - ENEMY_WIDTH/2 - 64, self.pos.y - 48), (64,96))
+            self.game.draw_rects(detection_rect)
+            hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
+        elif(self.rot >= 225 and self.rot < 315):
+            detection_rect = pg.Rect((self.pos.x - ENEMY_WIDTH/2, self.pos.y + 48), (96,64))
+            self.game.draw_rects(detection_rect)
+            hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
+
+        if(hit):
+            self.attack_mode = True
+
+    def attack(self):
+        
 
 # class SentinelaA(pg.sprite.Sprite):
 #     def __init__(self, game, x, y, type):
