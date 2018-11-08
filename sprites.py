@@ -2,6 +2,7 @@ import pygame as pg
 from settings import *
 vec = pg.math.Vector2
 import random
+import math
 
 class Player(pg.sprite.Sprite):
     def __init__(self, game, x, y):
@@ -130,6 +131,8 @@ class Player(pg.sprite.Sprite):
         self.rect.y = self.pos.y
         self.collide_with_walls('y')
 
+        self.game.draw_rects(self.rect)
+
     def collide_with_walls(self, dir):
         if dir == 'x':
             hits = pg.sprite.spritecollide(self,self.game.walls, False)
@@ -228,6 +231,16 @@ class Player(pg.sprite.Sprite):
             self.is_dashing = False
             self.dash_frame = 0
 
+    def draw_health_bar(self):
+        if self.health > 60:
+            cor = (0, 255, 0)
+        elif self.health > 30:
+            cor = (225, 225, 0)
+        else:
+            cor = (255, 0 ,0)
+        height = int(200 * self.health/PLAYER_HEALTH)
+        self.health_bar = pg.Rect(WIDTH - 60, HEIGHT - 30 - height, 30, height)
+        pg.draw.rect(self.game.screen, cor, self.health_bar)
 #========================================================================
 
 class SentinelaA(pg.sprite.Sprite):
@@ -245,6 +258,7 @@ class SentinelaA(pg.sprite.Sprite):
         self.rot_delay = 0
         self.enemy_rot_speed = ENEMY_ROT_SPEED
         self.attack_mode = False
+        self.last_attack = 0
 
     def update(self):
         if(self.health <= 0):
@@ -254,18 +268,27 @@ class SentinelaA(pg.sprite.Sprite):
             if(random.randint(1,3) == 1):
                 self.enemy_rot_speed *= -1
 
-        self.rot = (self.rot + self.enemy_rot_speed * self.game.dt) % 360
-        self.image = pg.transform.rotate(self.game.enemy1_img, self.rot)
-        self.rect = self.image.get_rect()
-        self.rect.center = self.pos
-        self.player_detection()
-        if(attack_mode):
-            self.attack()
+        if(self.attack_mode):
+            if(pg.time.get_ticks() - self.last_attack > 2000):
+                self.last_attack = pg.time.get_ticks()
+                self.attack()
+        else:
+            self.rot = (self.rot + self.enemy_rot_speed * self.game.dt) % 360
+            self.image = pg.transform.rotate(self.game.enemy1_img, self.rot)
+            self.rect = self.image.get_rect()
+            self.rect.center = self.pos
+            self.player_detection()
+
+        aux_distancia = math.sqrt((self.pos.x - self.game.player.pos.x)**2 + (self.pos.y - self.game.player.pos.y)**2)
+
+        if(aux_distancia > 500):
+            self.attack_mode = False
 
     def set_damage(self, value):
         self.health -= value
 
     def player_detection(self):
+
         if(self.rot >= 45 and self.rot < 135):
             detection_rect = pg.Rect((self.pos.x - 48, self.pos.y - 64 - 48), (96,64))
             self.game.draw_rects(detection_rect)
@@ -285,9 +308,36 @@ class SentinelaA(pg.sprite.Sprite):
 
         if(hit):
             self.attack_mode = True
+            self.last_attack = pg.time.get_ticks()
 
     def attack(self):
-        
+        Shoot(self.game, self.pos.x - ENEMY_WIDTH, self.pos.y, 1)
+
+class Shoot(pg.sprite.Sprite):
+    def __init__(self, game, x, y, type):
+        self.groups = game.all_sprites, game.shoots
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        if(type == 1):
+            self.image = self.game.shoot1_img
+        self.rect = self.image.get_rect()
+        self.pos = vec(x,y)
+        self.vel = SHOOT_VEL
+        self.spawn_time = pg.time.get_ticks()
+        self.damage = SHOOT_DAMAGE
+
+    def update(self):
+        self.pos.x -= self.vel * self.game.dt
+        self.rect.x = self.pos.x
+        self.rect.y = self.pos.y
+
+        if pg.sprite.spritecollideany(self, self.game.walls):
+            self.kill()
+        if (pg.time.get_ticks() - self.spawn_time > SHOOT_LIFE_TIME):
+            self.kill()
+        if(pg.sprite.collide_rect(self, self.game.player)):
+            self.game.player.health -= self.damage
+            self.kill()
 
 # class SentinelaA(pg.sprite.Sprite):
 #     def __init__(self, game, x, y, type):

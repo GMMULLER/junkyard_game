@@ -21,6 +21,7 @@ class Game:
         self.ground = pg.sprite.Group()
         self.enemys = pg.sprite.Group()
         self.interactables = pg.sprite.Group()
+        self.shoots = pg.sprite.Group()
         self.rects_debug = []
         enemy1_spawn_data = []
 
@@ -72,6 +73,8 @@ class Game:
         self.enemy1_img = pg.image.load(path.join(img_folder, ENEMY1_IMG)).convert_alpha()
         self.enemy1_2_img = pg.image.load(path.join(img_folder, ENEMY1_2_IMG)).convert_alpha()
 
+        self.shoot1_img = pg.image.load(path.join(img_folder, SHOOT1_SPRITE)).convert_alpha()
+
     def run(self):
         self.running = True
         while(self.running):
@@ -106,6 +109,8 @@ class Game:
 
         for rect in self.rects_debug:
             pg.draw.rect(self.screen, (255,255,255), self.camera.apply_rect(rect), 3)
+
+        self.player.draw_health_bar()
 
         self.rects_debug = []
         pg.display.flip()
