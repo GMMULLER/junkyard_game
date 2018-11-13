@@ -13,17 +13,30 @@ class Game:
         self.clock = pg.time.Clock()
         self.load_data()
         self.day = 0
+        pg.font.init()
+        self.myfont = pg.font.SysFont("Comic Sans Ms", 30)
+        self.player = None
+        self.inv_state = False
 
     def new(self):
-        self.day += 1
+        self.day = 1
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
         self.ground = pg.sprite.Group()
         self.enemys = pg.sprite.Group()
         self.interactables = pg.sprite.Group()
         self.shoots = pg.sprite.Group()
+        self.respawnables = pg.sprite.Group()
         self.rects_debug = []
-        enemy1_spawn_data = []
+        self.enemy1_spawn_data = []
+        self.enemy2_spawn_data = []
+        self.enemy3_spawn_data = []
+        self.pilhas1_sucata = []
+        self.pilhas2_sucata = []
+        self.pilhas3_sucata = []
+        self.pilhas1_ferramenta = []
+        self.pilhas2_ferramenta = []
+        self.pilhas3_ferramenta = []
 
         for tile_object in self.map.tmxdata.objects:
             if tile_object.name == "player":
@@ -31,23 +44,84 @@ class Game:
             if tile_object.name == "wall":
                 Obstacle(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
             if tile_object.name == "enemy1":
-                enemy1_spawn_data.append(tile_object)
+                self.enemy1_spawn_data.append(tile_object)
+            if tile_object.name == "enemy2":
+                self.enemy2_spawn_data.append(tile_object)
+            if tile_object.name == "enemy3":
+                self.enemy3_spawn_data.append(tile_object)
             if tile_object.name == "plug":
                 Plug(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
+            if tile_object.name == "fence":
+                Fence(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
+            if tile_object.name == "pilha_sucata_1":
+                self.pilhas1_sucata.append(tile_object)
+            if tile_object.name == "pilha_sucata_2":
+                self.pilhas2_sucata.append(tile_object)
+            if tile_object.name == "pilha_sucata_3":
+                self.pilhas3_sucata.append(tile_object)
+            if tile_object.name == "boss1":
+                Boss(self, tile_object.x, tile_object.y, 1)
+            if tile_object.name == "pilha_ferramenta_1":
+                self.pilhas1_ferramenta.append(tile_object)
+            if tile_object.name == "pilha_ferramenta_2":
+                self.pilhas2_ferramenta.append(tile_object)
+            if tile_object.name == "pilha_ferramenta_3":
+                self.pilhas3_ferramenta.append(tile_object)
+            if tile_object.name == "chest":
+                self.chest = Chest(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
 
-        self.spawn_enemys(enemy1_spawn_data)
+        self.spawn_enemys(self.enemy1_spawn_data, 1)
+        self.spawn_enemys(self.enemy2_spawn_data, 2)
+        self.spawn_enemys(self.enemy3_spawn_data, 3)
+        self.spawn_pilhas_sucata(self.pilhas1_sucata, 1)
+        self.spawn_pilhas_sucata(self.pilhas2_sucata, 2)
+        self.spawn_pilhas_sucata(self.pilhas3_sucata, 3)
+        self.spawn_pilhas_ferramenta(self.pilhas1_ferramenta)
+        self.spawn_pilhas_ferramenta(self.pilhas2_ferramenta)
+        self.spawn_pilhas_ferramenta(self.pilhas3_ferramenta)
 
         self.camera = Camera(self.map.width, self.map.height)
 
-    def spawn_enemys(self, array):
+    def spawn_enemys(self, array, area):
         random.shuffle(array)
         for k, tile_object in enumerate(array):
             #Faz o spawn de metade dos inimigos
             if(k % 2 == 0):
-                SentinelaA(self, tile_object.x, tile_object.y, random.randint(1,2))
+                if(area == 1):
+                    SentinelaA(self, tile_object.x, tile_object.y, random.randint(1,2))
+                if(area == 2):
+                    SentinelaB(self, tile_object.x, tile_object.y, random.randint(1,2))
+                if(area == 3):
+                    SentinelaC(self, tile_object.x, tile_object.y, random.randint(1,2))
+
+    def spawn_pilhas_sucata(self, array, area):
+        random.shuffle(array)
+        for k, tile_object in enumerate(array):
+            if(k % 2 == 0):
+                    PilhaSucata(self, tile_object.x, tile_object.y, area)
+
+    def spawn_pilhas_ferramenta(self, array):
+        random.shuffle(array)
+        for k, tile_object in enumerate(array):
+            if(k % 2 == 0):
+                PilhaFerramenta(self, tile_object.x, tile_object.y)
 
     def new_day(self):
-        self.new()
+        self.day += 1
+
+        for sprite in self.respawnables:
+            sprite.kill()
+
+        self.spawn_enemys(self.enemy1_spawn_data, 1)
+        self.spawn_enemys(self.enemy2_spawn_data, 2)
+        self.spawn_enemys(self.enemy3_spawn_data, 3)
+        self.spawn_pilhas_sucata(self.pilhas1_sucata, 1)
+        self.spawn_pilhas_sucata(self.pilhas2_sucata, 2)
+        self.spawn_pilhas_sucata(self.pilhas3_sucata, 3)
+        self.spawn_pilhas_ferramenta(self.pilhas1_ferramenta)
+        self.spawn_pilhas_ferramenta(self.pilhas2_ferramenta)
+        self.spawn_pilhas_ferramenta(self.pilhas3_ferramenta)
+
         for sprite in self.interactables:
             if(isinstance(sprite, Plug)):
                 self.plug = sprite
@@ -74,6 +148,17 @@ class Game:
         self.enemy1_2_img = pg.image.load(path.join(img_folder, ENEMY1_2_IMG)).convert_alpha()
 
         self.shoot1_img = pg.image.load(path.join(img_folder, SHOOT1_SPRITE)).convert_alpha()
+        self.shoot3_img = pg.image.load(path.join(img_folder, SHOOT3_SPRITE)).convert_alpha()
+        self.shoot3_1_img = pg.image.load(path.join(img_folder, SHOOT3_1_SPRITE)).convert_alpha()
+
+        self.pilha_sucata_img = pg.image.load(path.join(img_folder, PILHA_SUCATA_IMG)).convert_alpha()
+        self.pilha_ferramenta_img = pg.image.load(path.join(img_folder, PILHA_FERRAMENTA_IMG)).convert_alpha()
+
+        self.boss1_img = pg.image.load(path.join(img_folder, BOSS1_IMG)).convert_alpha()
+
+        self.player_inv_img = pg.image.load(path.join(img_folder, PLAYER_INV_IMG)).convert_alpha()
+        self.metal_img = pg.image.load(path.join(img_folder, METAL_IMG)).convert_alpha()
+        self.perna_img = pg.image.load(path.join(img_folder, PERNA_IMG)).convert_alpha()
 
     def run(self):
         self.running = True
@@ -91,6 +176,7 @@ class Game:
 
     def update(self):
         self.all_sprites.update()
+        self.enemys.update()
         self.camera.update(self.player)
 
         if(pg.time.get_ticks() - self.player.damage_delay > 1500):
@@ -112,7 +198,16 @@ class Game:
 
         self.player.draw_health_bar()
 
+        if(self.player.inv_active):
+            self.player.draw_inv()
+            self.player.inventario.print_inv()
+
         self.rects_debug = []
+
+        textsurface = self.myfont.render('Dia: '+str(self.day), False, (255,255,255))
+
+        self.screen.blit(textsurface,(10,10))
+
         pg.display.flip()
 
     def draw_rects(self, rect):
