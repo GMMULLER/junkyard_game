@@ -46,7 +46,18 @@ class Player(pg.sprite.Sprite):
         self.padding = 2
 
         self.inventario = Inventario(3,4,self.item_x,self.item_y,self.padding,self.game)
-        self.inventario.add_item(Equipamento("Perna",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_1",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_2",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_3",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_4",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_5",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_6",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_7",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_8",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_9",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_10",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_11",10,2,5,self.game.perna_img))
+        self.inventario.add_item(Equipamento("Perna_11",10,2,5,self.game.perna_img))
         self.inventario.add_item(Material("Metal",5,self.game.metal_img))
         self.chest_is_open = False
 
@@ -167,7 +178,9 @@ class Player(pg.sprite.Sprite):
                                 if(self.chest_is_open and not self.game.chest.inventario.is_full):
                                     #Pega o item removido do inventario do player e insire no baú
                                     aux_item = self.inventario.remove_item(i,k)
-                                    self.game.chest.inventario.add_item(aux_item)
+                                    #Testa se o item foi removido com sucesso
+                                    if(aux_item != 0):
+                                        self.game.chest.inventario.add_item(aux_item)
         else:
             self.t_state = False
 
@@ -814,26 +827,44 @@ class Inventario:
             else:
                 self.is_full = True
 
+            print("")
+            print("Item adicionado:")
             print(self.items)
         else:
             return 0
 
     def remove_item(self, l, c):
-        print(self.items)
         resp = self.items[l][c]
         if(self.items[l][c] != None):
             self.items[l][c] = None
-            for i in range(l, self.max_linha):
-                for j in range(c, self.max_coluna):
-                    if(j == self.max_coluna - 1):
-                        if(i == self.max_linha - 1):
-                            self.items[i][j] = None
+            print(self.max_coluna - 1)
+            for i in range(self.max_linha):
+                for j in range(self.max_coluna):
+                    #Só pode começar a retirar itens e mover os outros para trás se a posição for maior que a posição do item removido
+                    if(i == l):
+                        if(j >= c):
+                            if(j == self.max_coluna - 1):
+                                if(i != self.max_linha - 1):
+                                    self.items[i][j] = self.items[i + 1][0]
+                                    self.items[i + 1][0] = None
+                            else:
+                                self.items[i][j] = self.items[i][j + 1]
+                                self.items[i][j+1] = None
+                    elif(i > l):
+                        if(j == self.max_coluna - 1):
+                            if(i != self.max_linha - 1):
+                                self.items[i][j] = self.items[i + 1][0]
+                                self.items[i + 1][0] = None
                         else:
-                            self.items[i][j] = self.items[i + 1][0]
-                    else:
-                        self.items[i][j] = self.items[i][j + 1]
+                            self.items[i][j] = self.items[i][j + 1]
+                            self.items[i][j+1] = None
+            return resp
 
-        return resp
+            print("")
+            print("Item removido")
+            print(self.items)
+
+        return 0
 
     def print_inv(self):
         for i,linha in enumerate(self.items):
