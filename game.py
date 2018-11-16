@@ -69,6 +69,8 @@ class Game:
                 self.pilhas3_ferramenta.append(tile_object)
             if tile_object.name == "chest":
                 self.chest = Chest(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
+            if tile_object.name == "working":
+                self.table = Working_Table(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
 
         self.spawn_enemys(self.enemy1_spawn_data, 1)
         self.spawn_enemys(self.enemy2_spawn_data, 2)
@@ -108,6 +110,7 @@ class Game:
 
     def new_day(self):
         self.day += 1
+        self.player.health = PLAYER_HEALTH
 
         for sprite in self.respawnables:
             sprite.kill()
@@ -157,8 +160,33 @@ class Game:
         self.boss1_img = pg.image.load(path.join(img_folder, BOSS1_IMG)).convert_alpha()
 
         self.player_inv_img = pg.image.load(path.join(img_folder, PLAYER_INV_IMG)).convert_alpha()
+        self.chest_inv_img = pg.image.load(path.join(img_folder, CHEST_INV_IMG)).convert_alpha()
+
         self.metal_img = pg.image.load(path.join(img_folder, METAL_IMG)).convert_alpha()
-        self.perna_img = pg.image.load(path.join(img_folder, PERNA_IMG)).convert_alpha()
+        self.circuito_img = pg.image.load(path.join(img_folder, CIRCUITO_IMG)).convert_alpha()
+        self.engrenagem_img = pg.image.load(path.join(img_folder, ENGRENAGEM_IMG)).convert_alpha()
+        self.parafuso_img = pg.image.load(path.join(img_folder, PARAFUSO_IMG)).convert_alpha()
+        self.fio_img = pg.image.load(path.join(img_folder, FIO_IMG)).convert_alpha()
+        self.frag_mand_img = pg.image.load(path.join(img_folder, FRAG_MAND_IMG)).convert_alpha()
+        self.frag_cranio_img = pg.image.load(path.join(img_folder, FRAG_CRANIO_IMG)).convert_alpha()
+        self.frag_braco_img = pg.image.load(path.join(img_folder, FRAG_BRACO_IMG)).convert_alpha()
+        self.frag_peit_img = pg.image.load(path.join(img_folder, FRAG_PEIT_IMG)).convert_alpha()
+        self.frag_perna_1_img = pg.image.load(path.join(img_folder, FRAG_PERNA_1_IMG)).convert_alpha()
+        self.frag_perna_2_img = pg.image.load(path.join(img_folder, FRAG_PERNA_2_IMG)).convert_alpha()
+
+        self.working_table_img = pg.image.load(path.join(img_folder, WORKING_TABLE_IMG)).convert_alpha()
+
+        self.head_t1 = pg.image.load(path.join(img_folder, HEAD_T1)).convert_alpha()
+        self.head_t2 = pg.image.load(path.join(img_folder, HEAD_T2)).convert_alpha()
+        self.head_t3 = pg.image.load(path.join(img_folder, HEAD_T3)).convert_alpha()
+
+        self.chest_t1 = pg.image.load(path.join(img_folder, CHEST_T1)).convert_alpha()
+        self.chest_t2 = pg.image.load(path.join(img_folder, CHEST_T2)).convert_alpha()
+        self.chest_t3 = pg.image.load(path.join(img_folder, CHEST_T3)).convert_alpha()
+
+        self.leg_t1 = pg.image.load(path.join(img_folder, LEG_T1)).convert_alpha()
+        self.leg_t1 = pg.image.load(path.join(img_folder, LEG_T2)).convert_alpha()
+        self.leg_t1 = pg.image.load(path.join(img_folder, LEG_T3)).convert_alpha()
 
     def run(self):
         self.running = True
@@ -201,6 +229,13 @@ class Game:
         if(self.player.inv_active):
             self.player.draw_inv()
             self.player.inventario.print_inv()
+
+        if(self.player.chest_is_open):
+            self.chest.draw_inv()
+            self.chest.inventario.print_inv()
+
+        if(self.player.table_is_open):
+            self.table.draw_table()
 
         self.rects_debug = []
 
