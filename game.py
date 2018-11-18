@@ -110,7 +110,7 @@ class Game:
 
     def new_day(self):
         self.day += 1
-        self.player.health = PLAYER_HEALTH
+        self.player.health = self.player.max_health
 
         for sprite in self.respawnables:
             sprite.kill()
@@ -185,8 +185,20 @@ class Game:
         self.chest_t3 = pg.image.load(path.join(img_folder, CHEST_T3)).convert_alpha()
 
         self.leg_t1 = pg.image.load(path.join(img_folder, LEG_T1)).convert_alpha()
-        self.leg_t1 = pg.image.load(path.join(img_folder, LEG_T2)).convert_alpha()
-        self.leg_t1 = pg.image.load(path.join(img_folder, LEG_T3)).convert_alpha()
+        self.leg_t2 = pg.image.load(path.join(img_folder, LEG_T2)).convert_alpha()
+        self.leg_t3 = pg.image.load(path.join(img_folder, LEG_T3)).convert_alpha()
+
+        self.head_equip_t1 = pg.image.load(path.join(img_folder, HEAD_EQUIP_T1)).convert_alpha()
+        self.head_equip_t2 = pg.image.load(path.join(img_folder, HEAD_EQUIP_T2)).convert_alpha()
+        self.head_equip_t3 = pg.image.load(path.join(img_folder, HEAD_EQUIP_T3)).convert_alpha()
+
+        self.chest_equip_t1 = pg.image.load(path.join(img_folder, CHEST_EQUIP_T1)).convert_alpha()
+        self.chest_equip_t2 = pg.image.load(path.join(img_folder, CHEST_EQUIP_T2)).convert_alpha()
+        self.chest_equip_t3 = pg.image.load(path.join(img_folder, CHEST_EQUIP_T3)).convert_alpha()
+
+        self.leg_equip_t1 = pg.image.load(path.join(img_folder, LEG_EQUIP_T1)).convert_alpha()
+        self.leg_equip_t2 = pg.image.load(path.join(img_folder, LEG_EQUIP_T2)).convert_alpha()
+        self.leg_equip_t3 = pg.image.load(path.join(img_folder, LEG_EQUIP_T3)).convert_alpha()
 
     def run(self):
         self.running = True
@@ -229,6 +241,7 @@ class Game:
         if(self.player.inv_active):
             self.player.draw_inv()
             self.player.inventario.print_inv()
+            self.player.equip_inv.print_inv(2)
 
         if(self.player.chest_is_open):
             self.chest.draw_inv()

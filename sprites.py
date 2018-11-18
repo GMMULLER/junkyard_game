@@ -24,8 +24,11 @@ class Player(pg.sprite.Sprite):
         #Verifica movimentação diagonal
         self.diag_mov = False
         #Inicializa os atributos do Player
-        self.attack_power = 20
-        self.health = PLAYER_HEALTH
+        self.attack_power = PLAYER_ATTACK_DAM
+        self.max_health = PLAYER_HEALTH
+        self.health = self.max_health
+        self.max_energy = PLAYER_ENERGY
+        self.energy = self.max_energy
         self.damage_delay = 0
         self.last_attack = 0
         self.attack_state = False
@@ -45,7 +48,7 @@ class Player(pg.sprite.Sprite):
         self.item_y = self.inventario_y + 142
         self.padding = 2
 
-        self.inventario = Inventario(3,4,self.item_x,self.item_y,self.padding,self.game)
+        self.inventario = Inventario(3,4,self.item_x,self.item_y,self.padding,self.game, ITEM_WIDTH, ITEM_HEIGHT)
         self.chest_is_open = False
         self.table_is_open = False
 
@@ -57,6 +60,9 @@ class Player(pg.sprite.Sprite):
         self.e_state = False
 
         self.dash = []
+
+        self.equip_inv = Inventario(3,1, self.inventario_x + 116, self.inventario_y + 2, self.padding, self.game, EQUIP_WIDTH, EQUIP_HEIGHT)
+
         contador = 1
         for i in range(0,26):
             if(i > 12):
@@ -147,54 +153,99 @@ class Player(pg.sprite.Sprite):
         else:
             self.inv_state = False
 
-        if keys[pg.K_t]:
-            if(not self.t_state):
-                self.t_state = True
-                if(self.inv_active):
-                    aux_rect = None
-                    aux_ponto = pg.mouse.get_pos()
-                    for i in range(self.inventario.max_linha):
-                        for k in range(self.inventario.max_coluna):
-                            if(i == 0):
-                                if(k == 0):
-                                    aux_rect = pg.Rect((self.item_x + k * ITEM_WIDTH, self.item_y + i * ITEM_HEIGHT),(ITEM_WIDTH,ITEM_HEIGHT))
-                                else:
-                                    aux_rect = pg.Rect((self.item_x + k * (ITEM_WIDTH + self.padding), self.item_y + i * (ITEM_HEIGHT)),(ITEM_WIDTH,ITEM_HEIGHT))
-                            elif(k == 0):
-                                aux_rect = pg.Rect(((self.item_x + k * ITEM_WIDTH), self.item_y + i * (ITEM_HEIGHT + self.padding)),(ITEM_WIDTH,ITEM_HEIGHT))
-                            else:
-                                aux_rect = pg.Rect(((self.item_x + k * (ITEM_WIDTH + self.padding)), self.item_y + i * (ITEM_HEIGHT + self.padding)),(ITEM_WIDTH,ITEM_HEIGHT))
-                            if(aux_rect.collidepoint(aux_ponto)):
+        if(self.inv_active):
+            aux_rect = None
+            aux_ponto = pg.mouse.get_pos()
+            #Gerencionamento dos itens
+            for i in range(self.inventario.max_linha):
+                for k in range(self.inventario.max_coluna):
+                    if(i == 0):
+                        if(k == 0):
+                            aux_rect = pg.Rect((self.item_x + k * ITEM_WIDTH, self.item_y + i * ITEM_HEIGHT),(ITEM_WIDTH,ITEM_HEIGHT))
+                        else:
+                            aux_rect = pg.Rect((self.item_x + k * (ITEM_WIDTH + self.padding), self.item_y + i * (ITEM_HEIGHT)),(ITEM_WIDTH,ITEM_HEIGHT))
+                    elif(k == 0):
+                        aux_rect = pg.Rect(((self.item_x + k * ITEM_WIDTH), self.item_y + i * (ITEM_HEIGHT + self.padding)),(ITEM_WIDTH,ITEM_HEIGHT))
+                    else:
+                        aux_rect = pg.Rect(((self.item_x + k * (ITEM_WIDTH + self.padding)), self.item_y + i * (ITEM_HEIGHT + self.padding)),(ITEM_WIDTH,ITEM_HEIGHT))
+                    if(aux_rect.collidepoint(aux_ponto)):
+                        if keys[pg.K_t]:
+                            if(not self.t_state):
+                                self.t_state = True
                                 if(self.chest_is_open and not self.game.chest.inventario.is_full):
                                     #Pega o item removido do inventario do player e insere no baú
                                     aux_item = self.inventario.remove_item(i,k)
                                     #Testa se o item foi removido com sucesso
                                     if(aux_item != 0):
                                         self.game.chest.inventario.add_item(aux_item)
+                        else:
+                            self.t_state = False
+                            #Tecla e para equipar itens que estão no inventário
+                            if keys[pg.K_e]:
+                                if(not self.e_state):
+                                    self.e_state = True
+                                    if(isinstance(self.inventario.items[i][k],Equipamento)):
+                                        aux_equip = self.inventario.items[i][k]
+                                        if(aux_equip.nome == "ht1" or aux_equip.nome == "ht2" or aux_equip.nome == "ht3"):
+                                            if(self.equip_inv.items[0][0] == None):
+                                                self.equip_inv.items[0][0] = aux_equip
+                                                self.inventario.remove_item(i,k)
+                                        elif(aux_equip.nome == "pt1" or aux_equip.nome == "pt2" or aux_equip.nome == "pt3"):
+                                            if(self.equip_inv.items[1][0] == None):
+                                                self.equip_inv.items[1][0] = aux_equip
+                                                self.inventario.remove_item(i,k)
+                                        elif(aux_equip.nome == "lt1" or aux_equip.nome == "lt2" or aux_equip.nome == "lt3"):
+                                            if(self.equip_inv.items[2][0] == None):
+                                                self.equip_inv.items[2][0] = aux_equip
+                                                self.inventario.remove_item(i,k)
+                                        self.att_status()
+                            else:
+                                self.e_state = False
 
-                    aux_rect = None
-                    self.chest = self.game.chest
-                    if(self.chest_is_open):
-                        for i in range(self.chest.inventario.max_linha):
-                            for k in range(self.chest.inventario.max_coluna):
-                                if(i == 0):
-                                    if(k == 0):
-                                        aux_rect = pg.Rect((self.chest.item_x + k * ITEM_WIDTH, self.chest.item_y + i * ITEM_HEIGHT),(ITEM_WIDTH,ITEM_HEIGHT))
-                                    else:
-                                        aux_rect = pg.Rect((self.chest.item_x + k * (ITEM_WIDTH + self.padding), self.chest.item_y + i * (ITEM_HEIGHT)),(ITEM_WIDTH,ITEM_HEIGHT))
-                                elif(k == 0):
-                                    aux_rect = pg.Rect(((self.chest.item_x + k * ITEM_WIDTH), self.chest.item_y + i * (ITEM_HEIGHT + self.padding)),(ITEM_WIDTH,ITEM_HEIGHT))
-                                else:
-                                    aux_rect = pg.Rect(((self.chest.item_x + k * (ITEM_WIDTH + self.padding)), self.chest.item_y + i * (ITEM_HEIGHT + self.padding)),(ITEM_WIDTH,ITEM_HEIGHT))
-                                if(aux_rect.collidepoint(aux_ponto)):
-                                    if(self.inv_active and not self.inventario.is_full):
-                                        #Pega o item removido do inventario do baú e insere no do player
-                                        aux_item = self.chest.inventario.remove_item(i,k)
-                                        #Testa se o item foi removido com sucesso
-                                        if(aux_item != 0):
-                                            self.inventario.add_item(aux_item)
-        else:
-            self.t_state = False
+            #Gerenciamento dos equipamentos
+            for i in range(self.equip_inv.max_linha):
+                for k in range(self.equip_inv.max_coluna):
+                    if(i == 0):
+                        if(k == 0):
+                            aux_rect = pg.Rect((self.equip_inv.item_x + k * EQUIP_WIDTH, self.equip_inv.item_y + i * EQUIP_HEIGHT),(EQUIP_WIDTH,EQUIP_HEIGHT))
+                        else:
+                            aux_rect = pg.Rect((self.equip_inv.item_x + k * (EQUIP_WIDTH + self.equip_inv.padding), self.equip_inv.item_y + i * (EQUIP_HEIGHT)),(EQUIP_WIDTH,EQUIP_HEIGHT))
+                    elif(k == 0):
+                        aux_rect = pg.Rect(((self.equip_inv.item_x + k * EQUIP_WIDTH), self.equip_inv.item_y + i * (EQUIP_HEIGHT + self.equip_inv.padding)),(EQUIP_WIDTH,EQUIP_HEIGHT))
+                    else:
+                        aux_rect = pg.Rect(((self.equip_inv.item_x + k * (EQUIP_WIDTH + self.equip_inv.padding)), self.equip_inv.item_y + i * (EQUIP_HEIGHT + self.equip_inv.padding)),(EQUIP_WIDTH,EQUIP_HEIGHT))
+                    if(aux_rect.collidepoint(aux_ponto)):
+                        if keys[pg.K_e]:
+                            if(not self.e_state):
+                                self.e_state = True
+                                if(not self.inventario.is_full):
+                                    self.inventario.add_item(self.equip_inv.items[i][k])
+                                    self.equip_inv.items[i][k] = None
+                                    self.att_status()
+                        else:
+                            self.e_state = False
+
+            aux_rect = None
+            self.chest = self.game.chest
+            if(self.chest_is_open):
+                for i in range(self.chest.inventario.max_linha):
+                    for k in range(self.chest.inventario.max_coluna):
+                        if(i == 0):
+                            if(k == 0):
+                                aux_rect = pg.Rect((self.chest.item_x + k * ITEM_WIDTH, self.chest.item_y + i * ITEM_HEIGHT),(ITEM_WIDTH,ITEM_HEIGHT))
+                            else:
+                                aux_rect = pg.Rect((self.chest.item_x + k * (ITEM_WIDTH + self.padding), self.chest.item_y + i * (ITEM_HEIGHT)),(ITEM_WIDTH,ITEM_HEIGHT))
+                        elif(k == 0):
+                            aux_rect = pg.Rect(((self.chest.item_x + k * ITEM_WIDTH), self.chest.item_y + i * (ITEM_HEIGHT + self.padding)),(ITEM_WIDTH,ITEM_HEIGHT))
+                        else:
+                            aux_rect = pg.Rect(((self.chest.item_x + k * (ITEM_WIDTH + self.padding)), self.chest.item_y + i * (ITEM_HEIGHT + self.padding)),(ITEM_WIDTH,ITEM_HEIGHT))
+                        if(aux_rect.collidepoint(aux_ponto)):
+                            if(self.inv_active and not self.inventario.is_full):
+                                #Pega o item removido do inventario do baú e insere no do player
+                                aux_item = self.chest.inventario.remove_item(i,k)
+                                #Testa se o item foi removido com sucesso
+                                if(aux_item != 0):
+                                    self.inventario.add_item(aux_item)
 
         if keys[pg.K_e]:
             if(not self.e_state):
@@ -368,19 +419,35 @@ class Player(pg.sprite.Sprite):
             self.dash_frame = 0
 
     def draw_health_bar(self):
-        if self.health > 60:
+        if self.health > 6/10 * self.max_health:
             cor = (0, 255, 0)
-        elif self.health > 30:
+        elif self.health > 3/10 * self.max_health:
             cor = (225, 225, 0)
         else:
             cor = (255, 0 ,0)
-        height = int(200 * self.health/PLAYER_HEALTH)
+        height = int(200 * self.health/self.max_health)
         self.health_bar = pg.Rect(WIDTH - 60, HEIGHT - 30 - height, 30, height)
         pg.draw.rect(self.game.screen, cor, self.health_bar)
 
     def draw_inv(self):
 
         self.game.screen.blit(self.game.player_inv_img, (WIDTH - 212, HEIGHT - 474))
+
+    def att_status(self):
+        energia = 0
+        ataque = 0
+        vida = 0
+        print(self.equip_inv.items)
+        for i in self.equip_inv.items:
+            for item in i:
+                if item != None:
+                    energia += item.energia
+                    ataque += item.dano
+                    vida += item.vida
+
+        self.max_health = PLAYER_HEALTH + vida
+        self.max_energy = PLAYER_ENERGY + energia
+        self.attack_power = PLAYER_ATTACK_DAM + ataque
 
 #========================================================================
 
@@ -862,7 +929,7 @@ class Chest(pg.sprite.Sprite):
         self.inv_padding = 2
         self.item_x = self.inventario_x + self.inv_padding
         self.item_y = self.inventario_y + self.inv_padding
-        self.inventario = Inventario(10,10,self.item_x,self.item_y,self.inv_padding,self.game)
+        self.inventario = Inventario(10,10,self.item_x,self.item_y,self.inv_padding,self.game, ITEM_WIDTH, ITEM_HEIGHT)
 
     def interaction(self):
         return self.inventario
@@ -945,23 +1012,23 @@ class Working_Table(pg.sprite.Sprite):
                         if(can_craft):
                             aux_equip = None
                             if(i == 0 and k == 0):
-                                aux_equip = Equipamento("ht1", 15, 0, 0, self.game.head_t1)
+                                aux_equip = Equipamento("ht1", 15, 0, 0, self.game.head_t1, self.game.head_equip_t1)
                             elif(i == 0 and k == 1):
-                                aux_equip = Equipamento("ht2", 50, 0, 0, self.game.head_t2)
+                                aux_equip = Equipamento("ht2", 50, 0, 0, self.game.head_t2, self.game.head_equip_t2)
                             elif(i == 0 and k == 2):
-                                aux_equip = Equipamento("ht3", 150, 0, 0, self.game.head_t3)
+                                aux_equip = Equipamento("ht3", 150, 0, 0, self.game.head_t3, self.game.head_equip_t3)
                             elif(i == 1 and k == 0):
-                                aux_equip = Equipamento("pt1", 0, 20, 0, self.game.chest_t1)
+                                aux_equip = Equipamento("pt1", 0, 20, 0, self.game.chest_t1, self.game.chest_equip_t1)
                             elif(i == 1 and k == 1):
-                                aux_equip = Equipamento("pt2", 0, 30, 0, self.game.chest_t2)
+                                aux_equip = Equipamento("pt2", 0, 30, 0, self.game.chest_t2, self.game.chest_equip_t2)
                             elif(i == 1 and k == 2):
-                                aux_equip = Equipamento("pt3", 0, 100, 0, self.game.chest_t3)
+                                aux_equip = Equipamento("pt3", 0, 100, 0, self.game.chest_t3, self.game.chest_equip_t3)
                             elif(i == 2 and k == 0):
-                                aux_equip = Equipamento("lt1", 0, 0, 10, self.game.leg_t1)
+                                aux_equip = Equipamento("lt1", 0, 0, 10, self.game.leg_t1, self.game.leg_equip_t1)
                             elif(i == 2 and k == 1):
-                                aux_equip = Equipamento("lt2", 0, 0, 30, self.game.leg_t2)
+                                aux_equip = Equipamento("lt2", 0, 0, 30, self.game.leg_t2, self.game.leg_equip_t2)
                             elif(i == 2 and k == 2):
-                                aux_equip = Equipamento("lt3", 0, 0, 100, self.game.leg_t3)
+                                aux_equip = Equipamento("lt3", 0, 0, 100, self.game.leg_t3, self.game.leg_equip_t3)
 
                             if(aux_inv.add_item(aux_equip) != 0):
                                 for n,linha in enumerate(aux_inv.items):
@@ -1019,7 +1086,7 @@ class PilhaFerramenta(pg.sprite.Sprite):
 #========================================================================
 
 class Inventario:
-    def __init__(self, linhas, colunas, item_x, item_y, padding, game):
+    def __init__(self, linhas, colunas, item_x, item_y, padding, game, print_WIDTH, print_HEIGHT):
         self.game = game
         self.item_x = item_x
         self.item_y = item_y
@@ -1039,6 +1106,9 @@ class Inventario:
         self.coluna = 0
 
         self.is_full = False
+
+        self.print_WIDTH = print_WIDTH
+        self.print_HEIGHT = print_HEIGHT
 
     def add_item(self, item):
         print(self.linha, self.coluna)
@@ -1107,32 +1177,36 @@ class Inventario:
 
         return 0
 
-    def print_inv(self):
+    def print_inv(self, image = 1):
         for i,linha in enumerate(self.items):
             for k,item in enumerate(linha):
                 if(item != None):
+                    #Se estiver printando os equipamentos no inventario de equipamentos deve-se usar uma imagem diferente
+                    print_img = item.img
+                    if(image == 2):
+                        print_img = item.img2
                     if(i == 0):
                         if(k == 0):
-                            self.game.screen.blit(item.img,(self.item_x + k * ITEM_WIDTH, self.item_y + i * ITEM_HEIGHT))
+                            self.game.screen.blit(print_img,(self.item_x + k * self.print_WIDTH, self.item_y + i * self.print_HEIGHT))
                             #Testa se o item a ser printado é do tipo material para mostrar também a quantidade
                             if(isinstance(item,Material)):
                                 textsurface = self.myfont.render("Qtd: "+str(item.quantidade), False, (255,255,255))
-                                self.game.screen.blit(textsurface,(self.item_x + k * ITEM_WIDTH, self.item_y + i * ITEM_HEIGHT))
+                                self.game.screen.blit(textsurface,(self.item_x + k * self.print_WIDTH, self.item_y + i * self.print_HEIGHT))
                         else:
-                            self.game.screen.blit(item.img,(self.item_x + k * (ITEM_WIDTH + self.padding), self.item_y + i * (ITEM_HEIGHT)))
+                            self.game.screen.blit(print_img,(self.item_x + k * (self.print_WIDTH + self.padding), self.item_y + i * (self.print_HEIGHT)))
                             if(isinstance(item,Material)):
                                 textsurface = self.myfont.render("Qtd: "+str(item.quantidade), False, (255,255,255))
-                                self.game.screen.blit(textsurface,(self.item_x + k * (ITEM_WIDTH + self.padding), self.item_y + i * (ITEM_HEIGHT)))
+                                self.game.screen.blit(textsurface,(self.item_x + k * (self.print_WIDTH + self.padding), self.item_y + i * (self.print_HEIGHT)))
                     elif(k == 0):
-                        self.game.screen.blit(item.img,((self.item_x + k * ITEM_WIDTH), self.item_y + i * (ITEM_HEIGHT + self.padding)))
+                        self.game.screen.blit(print_img,((self.item_x + k * self.print_WIDTH), self.item_y + i * (self.print_HEIGHT + self.padding)))
                         if(isinstance(item,Material)):
                             textsurface = self.myfont.render("Qtd: "+str(item.quantidade), False, (255,255,255))
-                            self.game.screen.blit(textsurface,((self.item_x + k * ITEM_WIDTH), self.item_y + i * (ITEM_HEIGHT + self.padding)))
+                            self.game.screen.blit(textsurface,((self.item_x + k * self.print_WIDTH), self.item_y + i * (self.print_HEIGHT + self.padding)))
                     else:
-                        self.game.screen.blit(item.img,((self.item_x + k * (ITEM_WIDTH + self.padding)), self.item_y + i * (ITEM_HEIGHT + self.padding)))
+                        self.game.screen.blit(print_img,((self.item_x + k * (self.print_WIDTH + self.padding)), self.item_y + i * (self.print_HEIGHT + self.padding)))
                         if(isinstance(item,Material)):
                             textsurface = self.myfont.render("Qtd: "+str(item.quantidade), False, (255,255,255))
-                            self.game.screen.blit(textsurface,((self.item_x + k * (ITEM_WIDTH + self.padding)), self.item_y + i * (ITEM_HEIGHT + self.padding)))
+                            self.game.screen.blit(textsurface,((self.item_x + k * (self.print_WIDTH + self.padding)), self.item_y + i * (self.print_HEIGHT + self.padding)))
 
     def set_empty(self):
         for i in range(self.max_linha):
@@ -1144,12 +1218,17 @@ class Inventario:
 
 #Por enquanto os materiais e equipamentos são reconhecidos pelo nome e não por um id
 class Equipamento:
-    def __init__(self, nome, vida, dano, energia, img, quantidade = 1):
+    def __init__(self, nome, vida, dano, energia, img1, img2 = None, quantidade = 1):
         self.nome = nome
         self.vida = vida
         self.dano = dano
         self.energia = energia
-        self.img = img
+        self.img = img1
+        if(img2 != None):
+            self.img2 = img2
+            print(img2)
+        else:
+            self.img2 = img1
         self.quantidade = quantidade
 
 class Material:

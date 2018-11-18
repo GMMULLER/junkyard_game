@@ -18,6 +18,8 @@ PLAYER_HEIGHT = 64
 PLAYER_IMAGE_ROT = "player_rot.png"
 PLAYER_ATTACK_RATE = 300
 PLAYER_HEALTH = 100
+PLAYER_ENERGY = 150
+PLAYER_ATTACK_DAM = 20
 
 #enemy
 ENEMY_ROT_SPEED = 25
@@ -43,6 +45,9 @@ BOSS1_HEIGHT = 370
 PLAYER_INV_IMG = "player_inv.png"
 ITEM_WIDTH = 46
 ITEM_HEIGHT = 26
+
+EQUIP_WIDTH = 50
+EQUIP_HEIGHT = 46
 
 CHEST_INV_WIDTH = 482
 CHEST_INV_HEIGHT = 282
@@ -77,3 +82,13 @@ CHEST_T3 = "p3_inv.png"
 LEG_T1 = "l1_inv.png"
 LEG_T2 = "l2_inv.png"
 LEG_T3 = "l3_inv.png"
+
+HEAD_EQUIP_T1 = "h1_equip_inv.png"
+HEAD_EQUIP_T2 = "h2_equip_inv.png"
+HEAD_EQUIP_T3 = "h3_equip_inv.png"
+CHEST_EQUIP_T1 = "p1_equip_inv.png"
+CHEST_EQUIP_T2 = "p2_equip_inv.png"
+CHEST_EQUIP_T3 = "p3_equip_inv.png"
+LEG_EQUIP_T1 = "l1_equip_inv.png"
+LEG_EQUIP_T2 = "l2_equip_inv.png"
+LEG_EQUIP_T3 = "l3_equip_inv.png"
