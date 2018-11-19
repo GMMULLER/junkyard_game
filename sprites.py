@@ -1,5 +1,8 @@
 import pygame as pg
 from settings import *
+from inventory import *
+from PPlay.window import *
+from PPlay.sprite import *
 vec = pg.math.Vector2
 import random
 import math
@@ -17,6 +20,7 @@ class Player(pg.sprite.Sprite):
         self.vel = vec(0, 0)
         #Colocando a posição inicial
         self.pos = vec(x, y)
+        self.vel_bonus = 1
         #Ângulo de rotação da imagem (Começa virado para direita)
         self.rot_img = 0
         #Ângulo de rotação do player
@@ -32,6 +36,10 @@ class Player(pg.sprite.Sprite):
         self.damage_delay = 0
         self.last_attack = 0
         self.attack_state = False
+        self.attack_rate = PLAYER_ATTACK_RATE
+        self.deny_damage = False
+        self.attack_anim_frame = 0
+        self.attacking = False
         #Inicializando os retângulos de colisão de ataque
         self.attack_rect_1 = pg.Rect((0,0),(1,1))
         self.attack_rect_2 = pg.Rect((0,0),(1,1))
@@ -51,6 +59,8 @@ class Player(pg.sprite.Sprite):
         self.inventario = Inventario(3,4,self.item_x,self.item_y,self.padding,self.game, ITEM_WIDTH, ITEM_HEIGHT)
         self.chest_is_open = False
         self.table_is_open = False
+        self.searching = False
+        self.sch_cont = 0
 
         self.interaction_state = False
         self.inv_state = False
@@ -60,8 +70,13 @@ class Player(pg.sprite.Sprite):
         self.e_state = False
 
         self.dash = []
+        self.desb_dash = False
 
         self.equip_inv = Inventario(3,1, self.inventario_x + 116, self.inventario_y + 2, self.padding, self.game, EQUIP_WIDTH, EQUIP_HEIGHT)
+
+        self.gem_inv = Inventario(3,1, self.inventario_x + 168, self.inventario_y + 2, self.padding, self.game, GEM_WIDTH, GEM_HEIGHT)
+
+        self.attack_frames = [self.game.attack_anim_1,self.game.attack_anim_2,self.game.attack_anim_3,self.game.attack_anim_4,self.game.attack_anim_5]
 
         contador = 1
         for i in range(0,26):
@@ -74,7 +89,7 @@ class Player(pg.sprite.Sprite):
     def get_keys(self):
         self.vel = vec(0, 0)
         keys = pg.key.get_pressed()
-        if(not self.chest_is_open and not self.table_is_open):
+        if(not self.chest_is_open and not self.table_is_open and not self.searching and not self.game.generator.gen_msg and not self.game.alc_msg):
             if keys[pg.K_LEFT] or keys[pg.K_a]:
                 self.vel.x = -PLAYER_SPEED
                 self.rot_img = 180
@@ -90,26 +105,27 @@ class Player(pg.sprite.Sprite):
 
             if keys[pg.K_z]:
                 now = pg.time.get_ticks()
-                if(now - self.last_attack > PLAYER_ATTACK_RATE):
+                if(now - self.last_attack > self.attack_rate):
                     if(not self.attack_state):
                         self.melee_attack()
                         self.attack_state = True
             else:
                 self.attack_state = False
 
-            if keys[pg.K_c]:
+            if keys[pg.K_x]:
                 if(not self.interaction_state):
                     self.detect_interaction()
                     self.interaction_state = True
             else:
                 self.interaction_state = False
 
-            if keys[pg.K_x]:
-                if(not self.x_state):
-                    self.is_dashing = True
-                    self.x_state = True
-            else:
-                self.x_state = False
+            if(self.desb_dash):
+                if keys[pg.K_c]:
+                    if(not self.x_state):
+                        self.is_dashing = True
+                        self.x_state = True
+                else:
+                    self.x_state = False
 
             if self.vel.x != 0 and self.vel.y != 0:
                 self.diag_mov = True
@@ -143,6 +159,10 @@ class Player(pg.sprite.Sprite):
                 self.esc_state = True
                 self.chest_is_open = False
                 self.table_is_open = False
+                if(self.game.generator.gen_msg):
+                    self.game.generator.drew_msg = True
+                self.game.generator.gen_msg = False
+                self.game.alc_msg = False
         else:
             self.esc_state = False
 
@@ -255,7 +275,7 @@ class Player(pg.sprite.Sprite):
             self.e_state = False
 
     def update(self):
-        if(self.health <= 0):
+        if(self.health <= 0 or self.energy <= 0):
             self.inventario.set_empty()
             self.game.new_day()
         if(not self.is_dashing):
@@ -268,7 +288,7 @@ class Player(pg.sprite.Sprite):
 
         #Muda a posição do sprite
         if(not self.is_dashing):
-            self.pos += self.vel * self.game.dt
+            self.pos += self.vel * self.game.dt * self.vel_bonus
         else:
             self.dash_move()
 
@@ -277,8 +297,6 @@ class Player(pg.sprite.Sprite):
         self.collide_with_walls('x')
         self.rect.y = self.pos.y
         self.collide_with_walls('y')
-
-        self.game.draw_rects(self.rect)
 
     def collide_with_walls(self, dir):
         if dir == 'x':
@@ -313,27 +331,35 @@ class Player(pg.sprite.Sprite):
         if(self.rot_angle == 0):
             self.attack_rect_1 = pg.Rect((self.pos.x + self.rect.width + 5,self.pos.y - self.rect.height/2),(64, 128))
             self.attack_rect_2 = pg.Rect((0,0),(1,1))
+            self.attacking = True
         elif(self.rot_angle == 45):
             self.attack_rect_1 = pg.Rect((self.pos.x + self.rect.width/2, self.pos.y - 5 - self.rect.height),(32, 64))
             self.attack_rect_2 = pg.Rect((self.attack_rect_1.x + self.attack_rect_1.width + 1 ,self.attack_rect_1.y), (32, 96))
+            self.attacking = True
         elif(self.rot_angle == 90):
             self.attack_rect_1 = pg.Rect((self.pos.x - self.rect.width/2, self.pos.y - 5 - 64), (128, 64))
             self.attack_rect_2 = pg.Rect((0,0),(1,1))
+            self.attacking = True
         elif(self.rot_angle == 135):
             self.attack_rect_1 = pg.Rect((self.pos.x, self.rect.y - self.rect.height - 5),(32, 64))
             self.attack_rect_2 = pg.Rect((self.attack_rect_1.x - self.rect.width/2 - 1, self.attack_rect_1.y), (32, 96))
+            self.attacking = True
         elif(self.rot_angle == 180):
             self.attack_rect_1 = pg.Rect((self.pos.x - self.rect.width - 5, self.pos.y - self.rect.height/2), (64, 128))
             self.attack_rect_2 = pg.Rect((0,0),(1,1))
+            self.attacking = True
         elif(self.rot_angle == 225):
             self.attack_rect_1 = pg.Rect((self.rect.x, self.rect.y + self.rect.height + 5),(32,64))
             self.attack_rect_2 = pg.Rect((self.rect.x - self.rect.width/2, self.rect.y + self.rect.height/2),(32,101))
+            self.attacking = True
         elif(self.rot_angle == 270):
             self.attack_rect_1 = pg.Rect((self.pos.x - self.rect.width/2, self.pos.y + self.rect.height + 5),(128, 64))
             self.attack_rect_2 = pg.Rect((0,0),(1,1))
+            self.attacking = True
         elif(self.rot_angle == 315):
             self.attack_rect_1 = pg.Rect((self.pos.x + self.rect.width/2 + 5, self.pos.y + self.rect.height + 5),(32,64))
             self.attack_rect_2 = pg.Rect((self.pos.x + self.rect.width + 5, self.pos.y + self.rect.height/2),(32,101))
+            self.attacking = True
 
 
         for sprite in self.game.enemys:
@@ -350,10 +376,24 @@ class Player(pg.sprite.Sprite):
             if(hit1 or hit2):
                 sprite.set_damage(self.attack_power)
 
+        self.energy -= 2
+
     def detect_interaction(self):
         for sprite in self.game.interactables:
             #Testa em qual direção há objeto interagível e pega o primeiro atingido
-            if(sprite.rect.collidepoint(self.pos.x - 5, self.pos.y + PLAYER_HEIGHT/2)):
+            if(sprite.rect.colliderect(self.rect)):
+                if(isinstance(sprite, Chest)):
+                    self.chest_is_open = True
+                    self.chest_inv = sprite.interaction()
+                elif(isinstance(sprite, Working_Table)):
+                    self.table_is_open = True
+                    sprite.interaction()
+                elif(isinstance(sprite, PilhaSucata) or isinstance(sprite, PilhaFerramenta)):
+                    self.pilha_atual = sprite
+                    sprite.interaction()
+                else:
+                    sprite.interaction()
+            elif(sprite.rect.collidepoint(self.pos.x - 10, self.pos.y + PLAYER_HEIGHT/2)):
                 #Testa se o objeto que eu estou interagindo requer um comportamento específico
                 if(isinstance(sprite, Chest)):
                     self.chest_is_open = True
@@ -361,32 +401,44 @@ class Player(pg.sprite.Sprite):
                 elif(isinstance(sprite, Working_Table)):
                     self.table_is_open = True
                     sprite.interaction()
+                elif(isinstance(sprite, PilhaSucata) or isinstance(sprite, PilhaFerramenta)):
+                    self.pilha_atual = sprite
+                    sprite.interaction()
                 else:
                     sprite.interaction()
-            elif(sprite.rect.collidepoint(self.pos.x + PLAYER_WIDTH/2, self.pos.y - 5)):
+            elif(sprite.rect.collidepoint(self.pos.x + PLAYER_WIDTH/2, self.pos.y - 10)):
                 if(isinstance(sprite, Chest)):
                     self.chest_is_open = True
                     self.chest_inv = sprite.interaction()
                 elif(isinstance(sprite, Working_Table)):
                     self.table_is_open = True
                     sprite.interaction()
+                elif(isinstance(sprite, PilhaSucata) or isinstance(sprite, PilhaFerramenta)):
+                    self.pilha_atual = sprite
+                    sprite.interaction()
                 else:
                     sprite.interaction()
-            elif(sprite.rect.collidepoint(self.pos.x + PLAYER_WIDTH + 5, self.pos.y + PLAYER_HEIGHT/2)):
+            elif(sprite.rect.collidepoint(self.pos.x + PLAYER_WIDTH + 10, self.pos.y + PLAYER_HEIGHT/2)):
                 if(isinstance(sprite, Chest)):
                     self.chest_is_open = True
                     self.chest_inv = sprite.interaction()
                 elif(isinstance(sprite, Working_Table)):
                     self.table_is_open = True
                     sprite.interaction()
+                elif(isinstance(sprite, PilhaSucata) or isinstance(sprite, PilhaFerramenta)):
+                    self.pilha_atual = sprite
+                    sprite.interaction()
                 else:
                     sprite.interaction()
-            elif(sprite.rect.collidepoint(self.pos.x + PLAYER_WIDTH/2, self.pos.y + PLAYER_HEIGHT + 5)):
+            elif(sprite.rect.collidepoint(self.pos.x + PLAYER_WIDTH/2, self.pos.y + PLAYER_HEIGHT + 10)):
                 if(isinstance(sprite, Chest)):
                     self.chest_is_open = True
                     self.chest_inv = sprite.interaction()
                 elif(isinstance(sprite, Working_Table)):
                     self.table_is_open = True
+                    sprite.interaction()
+                elif(isinstance(sprite, PilhaSucata) or isinstance(sprite, PilhaFerramenta)):
+                    self.pilha_atual = sprite
                     sprite.interaction()
                 else:
                     sprite.interaction()
@@ -415,6 +467,7 @@ class Player(pg.sprite.Sprite):
                 self.pos.y += self.dash[self.dash_frame] * self.game.dt * 0.7071
             self.dash_frame += 1
         else:
+            self.energy -= 5
             self.is_dashing = False
             self.dash_frame = 0
 
@@ -426,8 +479,13 @@ class Player(pg.sprite.Sprite):
         else:
             cor = (255, 0 ,0)
         height = int(200 * self.health/self.max_health)
-        self.health_bar = pg.Rect(WIDTH - 60, HEIGHT - 30 - height, 30, height)
+        self.health_bar = pg.Rect(WIDTH - 120, HEIGHT - 30 - height, 30, height)
         pg.draw.rect(self.game.screen, cor, self.health_bar)
+
+    def draw_energy_bar(self):
+        height = int(200 * self.energy/self.max_energy)
+        self.energy_bar = pg.Rect(WIDTH - 60, HEIGHT - 30 - height, 30, height)
+        pg.draw.rect(self.game.screen, (0, 0, 255), self.energy_bar)
 
     def draw_inv(self):
 
@@ -437,7 +495,6 @@ class Player(pg.sprite.Sprite):
         energia = 0
         ataque = 0
         vida = 0
-        print(self.equip_inv.items)
         for i in self.equip_inv.items:
             for item in i:
                 if item != None:
@@ -448,6 +505,32 @@ class Player(pg.sprite.Sprite):
         self.max_health = PLAYER_HEALTH + vida
         self.max_energy = PLAYER_ENERGY + energia
         self.attack_power = PLAYER_ATTACK_DAM + ataque
+
+        if(self.gem_inv.items[0][0] != None):
+            self.attack_rate = 2 * PLAYER_ATTACK_RATE
+        if(self.gem_inv.items[1][0] != None):
+            self.deny_damage = True
+        if(self.gem_inv.items[2][0] != None):
+            self.vel_bonus = 1.5
+
+    def draw_sch_bar(self):
+        width = int(200 * self.sch_cont/100)
+        aux_sch_bar = pg.Rect(WIDTH/2 - 100, HEIGHT - 40, width, 30)
+        pg.draw.rect(self.game.screen, (0,0,255), aux_sch_bar)
+        if(self.sch_cont == 100):
+            self.energy -= 3
+            self.searching = False
+            self.sch_cont = 0
+            self.pilha_atual.drop_items()
+        self.sch_cont += 1
+
+    def set_damage(self, damage):
+        if(self.deny_damage):
+            aux_random = random.randint(1,4)
+            if(aux_random != 4):
+                self.health -= damage
+        else:
+            self.health -= damage
 
 #========================================================================
 
@@ -501,19 +584,15 @@ class SentinelaA(pg.sprite.Sprite):
 
         if(self.rot >= 45 and self.rot < 135):
             detection_rect = pg.Rect((self.pos.x - 48, self.pos.y - 64 - 48), (96,64))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
         elif(self.rot < 45 or self.rot >= 315):
             detection_rect = pg.Rect((self.pos.x + ENEMY_WIDTH/2, self.pos.y - 48), (64,96))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
         elif(self.rot >= 135 and self.rot < 225):
             detection_rect = pg.Rect((self.pos.x - ENEMY_WIDTH/2 - 64, self.pos.y - 48), (64,96))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
         elif(self.rot >= 225 and self.rot < 315):
             detection_rect = pg.Rect((self.pos.x - ENEMY_WIDTH/2, self.pos.y + 48), (96,64))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
 
         if(hit):
@@ -603,19 +682,15 @@ class SentinelaB(pg.sprite.Sprite):
 
         if(self.rot >= 45 and self.rot < 135):
             detection_rect = pg.Rect((self.pos.x - 48, self.pos.y - 64 - 48), (96,64))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
         elif(self.rot < 45 or self.rot >= 315):
             detection_rect = pg.Rect((self.pos.x + ENEMY_WIDTH/2, self.pos.y - 48), (64,96))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
         elif(self.rot >= 135 and self.rot < 225):
             detection_rect = pg.Rect((self.pos.x - ENEMY_WIDTH/2 - 64, self.pos.y - 48), (64,96))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
         elif(self.rot >= 225 and self.rot < 315):
             detection_rect = pg.Rect((self.pos.x - ENEMY_WIDTH/2, self.pos.y + 48), (96,64))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
 
         if(hit):
@@ -623,10 +698,10 @@ class SentinelaB(pg.sprite.Sprite):
             self.last_attack = pg.time.get_ticks()
 
     def attack(self):
-        Shoot(self.game, self.pos.x - ENEMY_WIDTH, self.pos.y, 1, "-x")
-        Shoot(self.game, self.pos.x + ENEMY_WIDTH, self.pos.y, 1, "x")
-        Shoot(self.game, self.pos.x, self.pos.y - ENEMY_HEIGHT, 1, "-y")
-        Shoot(self.game, self.pos.x, self.pos.y + ENEMY_HEIGHT, 1, "y")
+        Shoot(self.game, self.pos.x - ENEMY_WIDTH, self.pos.y - SHOOT2_HEIGHT, 2, "-x")
+        Shoot(self.game, self.pos.x + ENEMY_WIDTH, self.pos.y - SHOOT2_HEIGHT, 2, "x")
+        Shoot(self.game, self.pos.x - SHOOT2_WIDTH, self.pos.y - ENEMY_HEIGHT, 2, "-y")
+        Shoot(self.game, self.pos.x - SHOOT2_WIDTH, self.pos.y + ENEMY_HEIGHT, 2, "y")
 
     def drop_items(self):
         aux_inventario = self.game.player.inventario
@@ -705,19 +780,15 @@ class SentinelaC(pg.sprite.Sprite):
 
         if(self.rot >= 45 and self.rot < 135):
             detection_rect = pg.Rect((self.pos.x - 48, self.pos.y - 64 - 48), (96,64))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
         elif(self.rot < 45 or self.rot >= 315):
             detection_rect = pg.Rect((self.pos.x + ENEMY_WIDTH/2, self.pos.y - 48), (64,96))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
         elif(self.rot >= 135 and self.rot < 225):
             detection_rect = pg.Rect((self.pos.x - ENEMY_WIDTH/2 - 64, self.pos.y - 48), (64,96))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
         elif(self.rot >= 225 and self.rot < 315):
             detection_rect = pg.Rect((self.pos.x - ENEMY_WIDTH/2, self.pos.y + 48), (96,64))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
 
         if(hit):
@@ -767,7 +838,10 @@ class Boss(pg.sprite.Sprite):
         self.groups = game.all_sprites, game.enemys
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
-        self.image = self.game.boss1_img
+        if(area == 1 or area == 2):
+            self.image = self.game.boss1_img
+        elif(area == 3):
+            self.image = pg.transform.rotate(self.game.boss1_img, 180)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -779,6 +853,9 @@ class Boss(pg.sprite.Sprite):
 
     def update(self):
         if(self.health <= 0):
+            self.game.player.desb_dash = True
+            self.game.desb_dash_time = pg.time.get_ticks()
+            self.drop_items()
             self.kill()
 
         if(self.attack_mode):
@@ -797,15 +874,12 @@ class Boss(pg.sprite.Sprite):
 
         if(self.area == 1):
             detection_rect = pg.Rect((self.pos.x - 192, self.pos.y - 128), (192,626))
-            self.game.draw_rects(detection_rect)
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
         elif(self.area == 2):
-            detection_rect = pg.Rect((self.pos.x + ENEMY_WIDTH/2, self.pos.y - 48), (64,96))
-            self.game.draw_rects(detection_rect)
+            detection_rect = pg.Rect((self.pos.x - 192, self.pos.y - 128), (192,626))
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
         elif(self.area == 3):
-            detection_rect = pg.Rect((self.pos.x - ENEMY_WIDTH/2 - 64, self.pos.y - 48), (64,96))
-            self.game.draw_rects(detection_rect)
+            detection_rect = pg.Rect((self.pos.x + BOSS1_WIDTH, self.pos.y - 128), (192,626))
             hit = pg.Rect.colliderect(detection_rect, self.game.player.rect)
 
         if(hit):
@@ -813,15 +887,114 @@ class Boss(pg.sprite.Sprite):
             self.last_attack = pg.time.get_ticks()
 
     def attack(self):
-        Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2, self.area, "-x")
-        Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2 + 30, self.area, "-x")
-        Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2 - 30, self.area, "-x")
-        Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y + BOSS1_HEIGHT/2, self.area, "x")
-        Shoot(self.game, self.pos.x + BOSS1_WIDTH/2, self.pos.y + BOSS1_HEIGHT, self.area, "y")
-        Shoot(self.game, self.pos.x + BOSS1_WIDTH/2, self.pos.y, self.area, "-y")
+        if(self.area == 1):
+            aux_random = random.randint(1,5)
+            if(aux_random == 1):
+                for i in range(12):
+                    Shoot(self.game, self.pos.x, self.pos.y - 192 + i * 64, 1, "-x")
+            elif(aux_random == 2):
+                for i in range(30):
+                    Shoot(self.game, self.pos.x - i * 2, self.pos.y - 80, 1, "-x")
+                    Shoot(self.game, self.pos.x - i * 2, self.pos.y + BOSS1_HEIGHT + 80, 1, "-x")
+            else:
+                Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2, 1, "-x")
+                Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2 + 60, 1, "-x")
+                Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2 - 60, 1, "-x")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y + BOSS1_HEIGHT/2 - 60, 1, "x")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y + BOSS1_HEIGHT/2, 1, "x")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y + BOSS1_HEIGHT/2 + 60, 1, "x")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 + 60, self.pos.y + BOSS1_HEIGHT, 1, "y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 - 60, self.pos.y + BOSS1_HEIGHT, 1, "y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2, self.pos.y + BOSS1_HEIGHT, 1, "y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 + 60, self.pos.y, 1, "-y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 - 60, self.pos.y, 1, "-y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2, self.pos.y, 1, "-y")
+        elif(self.area == 2):
+            aux_random = random.randint(1,5)
+            if(aux_random == 1):
+                for i in range(12):
+                    Shoot(self.game, self.pos.x, self.pos.y - 192 + i * 64, 2, "-x")
+            elif(aux_random == 2):
+                for i in range(30):
+                    Shoot(self.game, self.pos.x - i * 2, self.pos.y - 80, 2, "-x")
+                    Shoot(self.game, self.pos.x - i * 2, self.pos.y + BOSS1_HEIGHT + 80, 2, "-x")
+            else:
+                Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2, 2, "-x")
+                Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2 + 60, 2, "-x")
+                Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2 - 60, 2, "-x")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y + BOSS1_HEIGHT/2 - 60, 2, "x")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y + BOSS1_HEIGHT/2, 2, "x")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y + BOSS1_HEIGHT/2 + 60, 2, "x")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 + 60, self.pos.y + BOSS1_HEIGHT, 2, "y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 - 60, self.pos.y + BOSS1_HEIGHT, 2, "y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2, self.pos.y + BOSS1_HEIGHT, 2, "y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 + 60, self.pos.y, 2, "-y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 - 60, self.pos.y, 2, "-y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2, self.pos.y, 2, "-y")
+        elif(self.area == 3):
+            aux_random = random.randint(1,6)
+            if(aux_random == 1):
+                for i in range(12):
+                    Shoot(self.game, self.pos.x, self.pos.y - 192 + i * 64, 3, "x")
+            elif(aux_random == 2):
+                for i in range(30):
+                    Shoot(self.game, self.pos.x + i * 2, self.pos.y - 80, 3, "x")
+                    Shoot(self.game, self.pos.x + i * 2, self.pos.y + BOSS1_HEIGHT + 80, 3, "x")
+            else:
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y, 3, "x-y")
+                Shoot(self.game, self.pos.x, self.pos.y, 3, "-x-y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y + BOSS1_HEIGHT, 3, "xy")
+                Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT, 3, "-xy")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y + BOSS1_HEIGHT/2, 3, "x")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y + BOSS1_HEIGHT/2 + 60, 3, "x")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH, self.pos.y + BOSS1_HEIGHT/2 - 60, 3, "x")
+                Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2 - 60, 3, "-x")
+                Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2, 3, "-x")
+                Shoot(self.game, self.pos.x, self.pos.y + BOSS1_HEIGHT/2 + 60, 3, "-x")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 + 60, self.pos.y, 3, "-y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 - 60, self.pos.y, 3, "-y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2, self.pos.y, 3, "-y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 + 60, self.pos.y + BOSS1_HEIGHT, 3, "y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2 - 60, self.pos.y + BOSS1_HEIGHT, 3, "y")
+                Shoot(self.game, self.pos.x + BOSS1_WIDTH/2, self.pos.y + BOSS1_HEIGHT, 3, "y")
 
     def set_damage(self, value):
         self.health -= value
+
+    def drop_items(self):
+        aux_inventario = self.game.player.inventario
+        metal = Material("Metal", 40, self.game.metal_img)
+        circuito = Material("Circuito", 40, self.game.circuito_img)
+
+
+        if(self.area == 1):
+            fio = Material("Fio", 100, self.game.fio_img)
+            frag_cranio = Material("fc(T3)", 15, self.game.frag_cranio_img)
+            frag_mand = Material("fm(T3)", 15, self.game.frag_mand_img)
+            aux_inventario.add_item(fio)
+            aux_inventario.add_item(frag_cranio)
+            aux_inventario.add_item(frag_mand)
+            self.game.player.gem_inv.items[0][0] = Gema("gem1", self.game.gem1_img)
+        elif(self.area == 2):
+            parafuso = Material("Parafuso", 100, self.game.parafuso_img)
+            frag_braco = Material("fb(T3)", 15, self.game.frag_braco_img)
+            frag_peit = Material("fpeit(T3)", 15, self.game.frag_peit_img)
+            aux_inventario.add_item(parafuso)
+            aux_inventario.add_item(frag_braco)
+            aux_inventario.add_item(frag_peit)
+            self.game.player.gem_inv.items[1][0] = Gema("gem2", self.game.gem2_img)
+        elif(self.area == 3):
+            engrenagem = Material("Engrenagem", 100, self.game.engrenagem_img)
+            frag_perna_1 = Material("fper1(T3)", 15, self.game.frag_perna_1_img)
+            frag_perna_2 = Material("fper2(T3)", 15, self.game.frag_perna_2_img)
+            aux_inventario.add_item(engrenagem)
+            aux_inventario.add_item(frag_perna_1)
+            aux_inventario.add_item(frag_perna_2)
+            self.game.player.gem_inv.items[2][0] = Gema("gem3", self.game.gem3_img)
+
+        aux_inventario.add_item(metal)
+        aux_inventario.add_item(circuito)
+        self.game.player.att_status()
 
 class Shoot(pg.sprite.Sprite):
     def __init__(self, game, x, y, type, dir):
@@ -843,6 +1016,19 @@ class Shoot(pg.sprite.Sprite):
             elif(dir == "-y"):
                 self.vel_y = SHOOT_VEL * -1
                 self.image = pg.transform.rotate(self.game.shoot1_img, 90)
+        elif(type == 2):
+            if(dir == "-x"):
+                self.vel_x = SHOOT_VEL * -1
+                self.image = pg.transform.rotate(self.game.shoot2_img, 90)
+            elif(dir == "x"):
+                self.vel_x = SHOOT_VEL
+                self.image = pg.transform.rotate(self.game.shoot2_img, -90)
+            elif(dir == "y"):
+                self.vel_y = SHOOT_VEL
+                self.image = pg.transform.rotate(self.game.shoot2_img, 180)
+            elif(dir == "-y"):
+                self.vel_y = SHOOT_VEL * -1
+                self.image = self.game.shoot2_img
         elif(type == 3):
             if(dir == "-x"):
                 self.vel_x = SHOOT_VEL/2 * -1
@@ -893,7 +1079,7 @@ class Shoot(pg.sprite.Sprite):
         if (pg.time.get_ticks() - self.spawn_time > SHOOT_LIFE_TIME):
             self.kill()
         if(pg.sprite.collide_rect(self, self.game.player)):
-            self.game.player.health -= self.damage
+            self.game.player.set_damage(self.damage)
             self.kill()
 
 #========================================================================
@@ -1060,6 +1246,7 @@ class PilhaSucata(pg.sprite.Sprite):
         self.groups = game.respawnables, game.interactables, game.all_sprites
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
+        self.area = area
         self.image = self.game.pilha_sucata_img
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -1067,7 +1254,124 @@ class PilhaSucata(pg.sprite.Sprite):
         self.pos = vec(x, y)
 
     def interaction(self):
-        print("Ganhou item!")
+        self.game.player.searching = True
+
+    def drop_items(self):
+        aux_inventario = self.game.player.inventario
+
+        if(self.area == 1):
+            frag_cranio_rand = random.randint(0,1)
+            frag_cranio = Material("fc(T1)", frag_cranio_rand, self.game.frag_cranio_img)
+            if(frag_cranio_rand != 0):
+                aux_inventario.add_item(frag_cranio)
+
+            frag_mand_rand = random.randint(0,1)
+            frag_mand = Material("fm(T1)", frag_mand_rand, self.game.frag_mand_img)
+            if(frag_mand_rand != 0):
+                aux_inventario.add_item(frag_mand)
+
+            frag_cranio_rand = random.randint(0,1)
+            frag_cranio = Material("fc(T2)", frag_cranio_rand, self.game.frag_cranio_img)
+            if(frag_cranio_rand != 0):
+                aux_inventario.add_item(frag_cranio)
+
+            frag_mand_rand = random.randint(0,1)
+            frag_mand = Material("fm(T2)", frag_mand_rand, self.game.frag_mand_img)
+            if(frag_mand_rand != 0):
+                aux_inventario.add_item(frag_mand)
+
+            fio_rand = random.randint(0,1)
+            fio = Material("Fio", fio_rand * 5, self.game.fio_img)
+            if(fio_rand != 0):
+                aux_inventario.add_item(fio)
+
+            metal_rand = random.randint(0,3)
+            metal = Material("Metal", metal_rand * 2, self.game.metal_img)
+            if(metal_rand != 0):
+                aux_inventario.add_item(metal)
+
+            circuito_rand = random.randint(0,3)
+            circuito = Material("Circuito", circuito_rand * 2, self.game.circuito_img)
+            if(circuito_rand != 0):
+                aux_inventario.add_item(circuito)
+
+        elif(self.area == 2):
+            aux_inventario = self.game.player.inventario
+
+            parafuso_rand = random.randint(0,3)
+            parafuso = Material("Parafuso", parafuso_rand * 5, self.game.parafuso_img)
+            if(parafuso_rand != 0):
+                aux_inventario.add_item(parafuso)
+
+            frag_braco_rand = random.randint(0,1)
+            frag_braco = Material("fb(T1)", frag_braco_rand, self.game.frag_braco_img)
+            if(frag_braco_rand != 0):
+                aux_inventario.add_item(frag_braco)
+
+            frag_peit_rand = random.randint(0,1)
+            frag_peit = Material("fpeit(T1)", frag_peit_rand, self.game.frag_peit_img)
+            if(frag_peit_rand != 0):
+                aux_inventario.add_item(frag_peit)
+
+            frag_braco_rand = random.randint(0,1)
+            frag_braco = Material("fb(T2)", frag_braco_rand, self.game.frag_braco_img)
+            if(frag_braco_rand != 0):
+                aux_inventario.add_item(frag_braco)
+
+            frag_peit_rand = random.randint(0,1)
+            frag_peit = Material("fpeit(T2)", frag_peit_rand, self.game.frag_peit_img)
+            if(frag_peit_rand != 0):
+                aux_inventario.add_item(frag_peit)
+
+            metal_rand = random.randint(0,3)
+            metal = Material("Metal", metal_rand * 2, self.game.metal_img)
+            if(metal_rand != 0):
+                aux_inventario.add_item(metal)
+
+            circuito_rand = random.randint(0,3)
+            circuito = Material("Circuito", circuito_rand * 2, self.game.circuito_img)
+            if(metal_rand != 0):
+                aux_inventario.add_item(metal)
+
+        elif(self.area == 3):
+            aux_inventario = self.game.player.inventario
+
+            engrenagem_rand = random.randint(0,3)
+            engrenagem = Material("Engrenagem", engrenagem_rand * 5, self.game.engrenagem_img)
+            if(engrenagem_rand != 0):
+                aux_inventario.add_item(engrenagem)
+
+            frag_perna_1_rand = random.randint(0,1)
+            frag_perna_1 = Material("fper1(T1)", frag_perna_1_rand, self.game.frag_perna_1_img)
+            if(frag_perna_1_rand != 0):
+                aux_inventario.add_item(frag_perna_1)
+
+            frag_perna_2_rand = random.randint(0,1)
+            frag_perna_2 = Material("fper2(T1)", frag_perna_2_rand, self.game.frag_perna_2_img)
+            if(frag_perna_2_rand != 0):
+                aux_inventario.add_item(frag_perna_2)
+
+            frag_perna_1_rand = random.randint(0,1)
+            frag_perna_1 = Material("fper1(T2)", frag_perna_1_rand, self.game.frag_perna_1_img)
+            if(frag_perna_1_rand != 0):
+                aux_inventario.add_item(frag_perna_1)
+
+            frag_perna_2_rand = random.randint(0,1)
+            frag_perna_2 = Material("fper2(T2)", frag_perna_2_rand, self.game.frag_perna_2_img)
+            if(frag_perna_2_rand != 0):
+                aux_inventario.add_item(frag_perna_2)
+
+            metal_rand = random.randint(0,3)
+            metal = Material("Metal", metal_rand * 2, self.game.metal_img)
+            if(metal_rand != 0):
+                aux_inventario.add_item(metal)
+
+            circuito_rand = random.randint(0,3)
+            circuito = Material("Circuito", circuito_rand * 2, self.game.circuito_img)
+            if(circuito_rand != 0):
+                aux_inventario.add_item(circuito)
+
+        self.kill()
 
 class PilhaFerramenta(pg.sprite.Sprite):
     def __init__(self, game, x, y):
@@ -1081,165 +1385,60 @@ class PilhaFerramenta(pg.sprite.Sprite):
         self.pos = vec(x, y)
 
     def interaction(self):
-        print("Curou")
+        self.game.player.searching = True
+
+    def drop_items(self):
+        if(self.game.player.health + 30 >= self.game.player.max_health):
+            self.game.player.health = self.game.player.max_health
+        else:
+            self.game.player.health += 30
+
+        self.kill()
+
+class Gerador(pg.sprite.Sprite):
+    def __init__(self, game, x, y, width, height):
+        self.drew_msg = False
+        self.gen_msg = False
+        self.groups = game.interactables
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.rect = pg.Rect(x, y, width, height)
+        self.pos = vec(x, y)
+        self.myfont = pg.font.SysFont("Comic Sans Ms", 30)
+
+    def interaction(self):
+        self.gen_msg = True
+
+    def draw_message(self):
+        textsurface = self.myfont.render("* O gerador voltou a funcionar! *", False, (255,255,255))
+        self.game.screen.blit(textsurface,(WIDTH/2 - 130,HEIGHT - 30))
+
+class Alcapao(pg.sprite.Sprite):
+    def __init__(self, game, x, y, width, height):
+        self.groups = game.interactables
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.rect = pg.Rect(x, y, width, height)
+        self.pos = vec(x, y)
+        self.myfont = pg.font.SysFont("Comic Sans Ms", 30)
+
+    def interaction(self):
+        self.game.alc_msg = True
+        aux_gem = self.game.player.gem_inv
+        if(aux_gem.items[0][0] != None and aux_gem.items[1][0] != None and aux_gem.items[2][0] != None):
+            while(1):
+                self.game.screen.fill((0,0,0))
+                self.game.screen.blit(self.game.gameover_img, (WIDTH/2 - 426, HEIGHT/2 - 240))
+                keys = pg.key.get_pressed()
+                pg.display.flip()
+                if keys[pg.K_ESCAPE]:
+                    self.game.running = False
+                    pg.quit()
+                    break
+                for event in pg.event.get():
+                    if event.type == pg.QUIT:
+                        self.running = False
+                        pg.quit()
+                        break
 
 #========================================================================
-
-class Inventario:
-    def __init__(self, linhas, colunas, item_x, item_y, padding, game, print_WIDTH, print_HEIGHT):
-        self.game = game
-        self.item_x = item_x
-        self.item_y = item_y
-        self.padding = padding
-        self.items = []
-        pg.font.init()
-        self.myfont = pg.font.SysFont("Comic Sans Ms", 15)
-        for x in range(linhas):
-            self.items.append([])
-            for y in range(colunas):
-                self.items[x].append(None)
-
-        self.max_linha = linhas
-        self.max_coluna = colunas
-
-        self.linha = 0
-        self.coluna = 0
-
-        self.is_full = False
-
-        self.print_WIDTH = print_WIDTH
-        self.print_HEIGHT = print_HEIGHT
-
-    def add_item(self, item):
-        print(self.linha, self.coluna)
-        if(not self.is_full and item != None):
-            aux_stack = 0
-            if(isinstance(item, Equipamento) or isinstance(item, Gema)):
-                self.items[self.linha][self.coluna] = item
-            elif(isinstance(item, Material)):
-                for linha in self.items:
-                    for coluna in linha:
-                        if(coluna != None):
-                            if(coluna.nome == item.nome):
-                                coluna.quantidade += item.quantidade
-                                aux_stack = 1
-                if(aux_stack == 0):
-                    self.items[self.linha][self.coluna] = item
-            if(aux_stack == 0):
-                if(self.coluna < self.max_coluna - 1):
-                    self.coluna += 1
-                elif(self.linha < self.max_linha - 1):
-                    self.linha += 1
-                    self.coluna = 0
-                else:
-                    self.is_full = True
-
-        else:
-            return 0
-
-    def remove_item(self, l, c):
-        resp = self.items[l][c]
-        if(self.items[l][c] != None):
-            self.items[l][c] = None
-            for i in range(self.max_linha):
-                for j in range(self.max_coluna):
-                    aux_remove = 0
-                    #Só pode começar a retirar itens e mover os outros para trás se a posição for maior que a posição do item removido
-                    if(i == l):
-                        if(j >= c):
-                            if(j == self.max_coluna - 1):
-                                if(i != self.max_linha - 1):
-                                    self.items[i][j] = self.items[i + 1][0]
-                                    self.items[i + 1][0] = None
-                                    aux_remove = 1
-                            else:
-                                self.items[i][j] = self.items[i][j + 1]
-                                self.items[i][j+1] = None
-                                aux_remove = 1
-                    elif(i > l):
-                        if(j == self.max_coluna - 1):
-                            if(i != self.max_linha - 1):
-                                self.items[i][j] = self.items[i + 1][0]
-                                self.items[i + 1][0] = None
-                                aux_remove = 1
-                        else:
-                            self.items[i][j] = self.items[i][j + 1]
-                            self.items[i][j+1] = None
-                            aux_remove = 1
-
-            if(self.coluna != 0):
-                self.coluna -= 1
-            elif(self.linha != 0):
-                self.coluna = self.max_coluna - 1
-                self.linha -= 1
-
-            return resp
-
-        return 0
-
-    def print_inv(self, image = 1):
-        for i,linha in enumerate(self.items):
-            for k,item in enumerate(linha):
-                if(item != None):
-                    #Se estiver printando os equipamentos no inventario de equipamentos deve-se usar uma imagem diferente
-                    print_img = item.img
-                    if(image == 2):
-                        print_img = item.img2
-                    if(i == 0):
-                        if(k == 0):
-                            self.game.screen.blit(print_img,(self.item_x + k * self.print_WIDTH, self.item_y + i * self.print_HEIGHT))
-                            #Testa se o item a ser printado é do tipo material para mostrar também a quantidade
-                            if(isinstance(item,Material)):
-                                textsurface = self.myfont.render("Qtd: "+str(item.quantidade), False, (255,255,255))
-                                self.game.screen.blit(textsurface,(self.item_x + k * self.print_WIDTH, self.item_y + i * self.print_HEIGHT))
-                        else:
-                            self.game.screen.blit(print_img,(self.item_x + k * (self.print_WIDTH + self.padding), self.item_y + i * (self.print_HEIGHT)))
-                            if(isinstance(item,Material)):
-                                textsurface = self.myfont.render("Qtd: "+str(item.quantidade), False, (255,255,255))
-                                self.game.screen.blit(textsurface,(self.item_x + k * (self.print_WIDTH + self.padding), self.item_y + i * (self.print_HEIGHT)))
-                    elif(k == 0):
-                        self.game.screen.blit(print_img,((self.item_x + k * self.print_WIDTH), self.item_y + i * (self.print_HEIGHT + self.padding)))
-                        if(isinstance(item,Material)):
-                            textsurface = self.myfont.render("Qtd: "+str(item.quantidade), False, (255,255,255))
-                            self.game.screen.blit(textsurface,((self.item_x + k * self.print_WIDTH), self.item_y + i * (self.print_HEIGHT + self.padding)))
-                    else:
-                        self.game.screen.blit(print_img,((self.item_x + k * (self.print_WIDTH + self.padding)), self.item_y + i * (self.print_HEIGHT + self.padding)))
-                        if(isinstance(item,Material)):
-                            textsurface = self.myfont.render("Qtd: "+str(item.quantidade), False, (255,255,255))
-                            self.game.screen.blit(textsurface,((self.item_x + k * (self.print_WIDTH + self.padding)), self.item_y + i * (self.print_HEIGHT + self.padding)))
-
-    def set_empty(self):
-        for i in range(self.max_linha):
-            for k in range(self.max_coluna):
-                self.items[i][k] = None
-
-        self.linha = 0
-        self.coluna = 0
-
-#Por enquanto os materiais e equipamentos são reconhecidos pelo nome e não por um id
-class Equipamento:
-    def __init__(self, nome, vida, dano, energia, img1, img2 = None, quantidade = 1):
-        self.nome = nome
-        self.vida = vida
-        self.dano = dano
-        self.energia = energia
-        self.img = img1
-        if(img2 != None):
-            self.img2 = img2
-            print(img2)
-        else:
-            self.img2 = img1
-        self.quantidade = quantidade
-
-class Material:
-    def __init__(self, nome, quantidade, img):
-        self.nome = nome
-        self.quantidade = quantidade
-        self.img = img
-
-class Gema:
-    def __init__(self, nome, status, img, quantidade = 1):
-        self.nome = nome
-        self.status = status
-        self.img = img
-        self.quantidade = quantidade

@@ -29,6 +29,9 @@ ENEMY_HEIGHT = 96
 ENEMY_WIDTH = 96
 
 SHOOT1_SPRITE = "shoot1.png"
+SHOOT2_SPRITE = "shoot2.png"
+SHOOT2_WIDTH = 32
+SHOOT2_HEIGHT = 32
 SHOOT3_SPRITE = "shoot3.png"
 SHOOT3_1_SPRITE = "shoot3_1.png"
 SHOOT_LIFE_TIME = 5000
@@ -48,6 +51,9 @@ ITEM_HEIGHT = 26
 
 EQUIP_WIDTH = 50
 EQUIP_HEIGHT = 46
+
+GEM_WIDTH = 22
+GEM_HEIGHT = 42
 
 CHEST_INV_WIDTH = 482
 CHEST_INV_HEIGHT = 282
@@ -92,3 +98,17 @@ CHEST_EQUIP_T3 = "p3_equip_inv.png"
 LEG_EQUIP_T1 = "l1_equip_inv.png"
 LEG_EQUIP_T2 = "l2_equip_inv.png"
 LEG_EQUIP_T3 = "l3_equip_inv.png"
+
+GEM1_IMG = "gem1.png"
+GEM2_IMG = "gem2.png"
+GEM3_IMG = "gem3.png"
+
+DESB_DASH_IMG = "desb_dash.png"
+
+ATTACK_ANIM_1_IMG = "attack_anim_1.png"
+ATTACK_ANIM_2_IMG = "attack_anim_2.png"
+ATTACK_ANIM_3_IMG = "attack_anim_3.png"
+ATTACK_ANIM_4_IMG = "attack_anim_4.png"
+ATTACK_ANIM_5_IMG = "attack_anim_5.png"
+
+GAMEOVER_IMG = "gameover.jpg"
