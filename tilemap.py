@@ -35,18 +35,22 @@ class Camera:
         self.height = height
 
     def apply(self,entity):
+        #Move o rect de determinada entidade pelo offset da camera
         return entity.rect.move(self.camera.topleft)
 
     def apply_rect(self, rect):
         return rect.move(self.camera.topleft)
 
     def apply_coord(self, coord_x, coord_y):
+        #Calcula uma nova coordenada de acordo com o offset da camera
         return (coord_x + self.camera.x, coord_y + self.camera.y)
 
     def update(self, target):
+        #Target é a entidade que será "seguida" pela camera
         x = -target.rect.x + int(WIDTH/2)
         y = -target.rect.y + int(HEIGHT/2)
 
+        #Necessário para que a camera pare nas bordas do mapa
         x = min(0, x)
         y = min(0, y)
         x = max(-(self.width - WIDTH), x)

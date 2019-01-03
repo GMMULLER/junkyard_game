@@ -7,9 +7,9 @@ from inventory import *
 from os import path
 
 class Game:
-    def __init__(self):
+    def __init__(self, screen):
         pg.init()
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT))
+        self.screen = screen
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
         self.load_data()
@@ -21,8 +21,10 @@ class Game:
         self.drew_desb_dash = False
         self.desb_dash_time = 0
         self.alc_msg = False
+        self.enter_time = pg.time.get_ticks()
 
     def new(self):
+        #Inicializa todas as variáveis para começar o jogo
         self.day = 1
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
@@ -41,6 +43,7 @@ class Game:
         self.pilhas2_ferramenta = []
         self.pilhas3_ferramenta = []
 
+        #Instancia todos os objetos a partir do arquivo gerado pelo Tiled_Map
         for tile_object in self.map.tmxdata.objects:
             if tile_object.name == "player":
                 self.player = Player(self, tile_object.x, tile_object.y)
@@ -83,6 +86,7 @@ class Game:
             if tile_object.name == "trapdoor":
                 Alcapao(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
 
+        #Faz o spawn randômico de todas essas entidades
         self.spawn_enemys(self.enemy1_spawn_data, 1)
         self.spawn_enemys(self.enemy2_spawn_data, 2)
         self.spawn_enemys(self.enemy3_spawn_data, 3)
@@ -120,13 +124,16 @@ class Game:
                 PilhaFerramenta(self, tile_object.x, tile_object.y)
 
     def new_day(self):
+        #Começa um novo dia
         self.day += 1
         self.player.health = self.player.max_health
         self.player.energy = self.player.max_energy
 
+        #Todos os sprites de inimigos e pilhas que sobraram devem ser deletador para serem reposicionados
         for sprite in self.respawnables:
             sprite.kill()
 
+        #Os inimigos devem ser reposicionados
         self.spawn_enemys(self.enemy1_spawn_data, 1)
         self.spawn_enemys(self.enemy2_spawn_data, 2)
         self.spawn_enemys(self.enemy3_spawn_data, 3)
@@ -142,6 +149,7 @@ class Game:
                 self.plug = sprite
                 break
 
+        #Reposiciona o Player para frente do Plug
         self.player.pos.x = self.plug.pos.x
         self.player.pos.y = self.plug.pos.y + 2 + self.plug.rect.height
 
@@ -156,6 +164,7 @@ class Game:
         self.map_img = self.map.make_map()
         self.map_rect = self.map_img.get_rect()
 
+        #Cria todas as variáveis que conterão as imagens usadas no jogo
         self.player_img = pg.image.load(path.join(img_folder, PLAYER_IMAGE)).convert_alpha()
         self.player_img_rot = pg.image.load(path.join(img_folder, PLAYER_IMAGE_ROT)).convert_alpha()
 
@@ -186,6 +195,20 @@ class Game:
         self.frag_peit_img = pg.image.load(path.join(img_folder, FRAG_PEIT_IMG)).convert_alpha()
         self.frag_perna_1_img = pg.image.load(path.join(img_folder, FRAG_PERNA_1_IMG)).convert_alpha()
         self.frag_perna_2_img = pg.image.load(path.join(img_folder, FRAG_PERNA_2_IMG)).convert_alpha()
+
+        self.frag_mand_t2_img = pg.image.load(path.join(img_folder, FRAG_MAND_T2_IMG)).convert_alpha()
+        self.frag_cranio_t2_img = pg.image.load(path.join(img_folder, FRAG_CRANIO_T2_IMG)).convert_alpha()
+        self.frag_braco_t2_img = pg.image.load(path.join(img_folder, FRAG_BRACO_T2_IMG)).convert_alpha()
+        self.frag_peit_t2_img = pg.image.load(path.join(img_folder, FRAG_PEIT_T2_IMG)).convert_alpha()
+        self.frag_perna_1_t2_img = pg.image.load(path.join(img_folder, FRAG_PERNA_1_T2_IMG)).convert_alpha()
+        self.frag_perna_2_t2_img = pg.image.load(path.join(img_folder, FRAG_PERNA_2_T2_IMG)).convert_alpha()
+
+        self.frag_mand_t3_img = pg.image.load(path.join(img_folder, FRAG_MAND_T3_IMG)).convert_alpha()
+        self.frag_cranio_t3_img = pg.image.load(path.join(img_folder, FRAG_CRANIO_T3_IMG)).convert_alpha()
+        self.frag_braco_t3_img = pg.image.load(path.join(img_folder, FRAG_BRACO_T3_IMG)).convert_alpha()
+        self.frag_peit_t3_img = pg.image.load(path.join(img_folder, FRAG_PEIT_T3_IMG)).convert_alpha()
+        self.frag_perna_1_t3_img = pg.image.load(path.join(img_folder, FRAG_PERNA_1_T3_IMG)).convert_alpha()
+        self.frag_perna_2_t3_img = pg.image.load(path.join(img_folder, FRAG_PERNA_2_T3_IMG)).convert_alpha()
 
         self.working_table_img = pg.image.load(path.join(img_folder, WORKING_TABLE_IMG)).convert_alpha()
 
@@ -227,6 +250,12 @@ class Game:
         self.attack_anim_4 = pg.image.load(path.join(img_folder, ATTACK_ANIM_4_IMG)).convert_alpha()
         self.attack_anim_5 = pg.image.load(path.join(img_folder, ATTACK_ANIM_5_IMG)).convert_alpha()
 
+        self.tutorial_1_img = pg.image.load(path.join(img_folder, TUTORIAL_1_IMG)).convert_alpha()
+        self.tutorial_2_img = pg.image.load(path.join(img_folder, TUTORIAL_2_IMG)).convert_alpha()
+        self.tutorial_3_img = pg.image.load(path.join(img_folder, TUTORIAL_3_IMG)).convert_alpha()
+        self.tutorial_4_img = pg.image.load(path.join(img_folder, TUTORIAL_4_IMG)).convert_alpha()
+        self.tutorial_5_img = pg.image.load(path.join(img_folder, TUTORIAL_5_IMG)).convert_alpha()
+
     def run(self):
         self.running = True
         while(self.running):
@@ -246,6 +275,7 @@ class Game:
         self.enemys.update()
         self.camera.update(self.player)
 
+        #Testa (a cada 1.5 segundos) se o Player encostou em algum inimigo
         if(pg.time.get_ticks() - self.player.damage_delay > 1500):
             hits = pg.sprite.spritecollide(self.player, self.enemys, False)
             for hit in hits:
@@ -254,6 +284,7 @@ class Game:
 
     def draw(self):
         self.screen.blit(self.map_img, self.camera.apply_rect(self.map_rect))
+
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
 
@@ -285,26 +316,42 @@ class Game:
             if(pg.time.get_ticks() - self.desb_dash_time > 2000):
                 self.drew_desb_dash = True
 
+        #Sequências do tutorial
+        if(pg.time.get_ticks() - self.enter_time < 4000):
+            self.screen.blit(self.tutorial_1_img, (30, HEIGHT - 128 - 30))
+        elif(pg.time.get_ticks() - self.enter_time < 8000):
+            self.screen.blit(self.tutorial_2_img, (30, HEIGHT - 128 - 30))
+        elif(pg.time.get_ticks() - self.enter_time < 12000):
+            self.screen.blit(self.tutorial_3_img, (30, HEIGHT - 128 - 30))
+        elif(pg.time.get_ticks() - self.enter_time < 16000):
+            self.screen.blit(self.tutorial_4_img, (30, HEIGHT - 128 - 30))
+        elif(pg.time.get_ticks() - self.enter_time < 20000):
+            self.screen.blit(self.tutorial_5_img, (30, HEIGHT - 128 - 30))
+
+
+        #Desenha os frames da animação de ataque
         if(self.player.attacking):
             if(self.player.rot_angle == 0):
-                self.screen.blit(self.player.attack_frames[self.player.attack_anim_frame//5], self.camera.apply_coord(self.player.pos.x + 32, self.player.pos.y - 32))
+                #A divisão inteira faz com que cada sprite da animação seja mostrado por 5 gameloops
+                self.screen.blit(self.player.attack_frames[int(self.player.attack_anim_frame//5)], self.camera.apply_coord(self.player.pos.x + 32, self.player.pos.y - 32))
             elif(self.player.rot_angle == 90):
-                self.screen.blit(pg.transform.rotate(self.player.attack_frames[self.player.attack_anim_frame//5], 90), self.camera.apply_coord(self.player.pos.x - 32, self.player.pos.y - 96))
+                self.screen.blit(pg.transform.rotate(self.player.attack_frames[int(self.player.attack_anim_frame//5)], 90), self.camera.apply_coord(self.player.pos.x - 32, self.player.pos.y - 96))
             elif(self.player.rot_angle == 180):
-                self.screen.blit(pg.transform.rotate(self.player.attack_frames[self.player.attack_anim_frame//5], 180), self.camera.apply_coord(self.player.pos.x - 96, self.player.pos.y - 32))
+                self.screen.blit(pg.transform.rotate(self.player.attack_frames[int(self.player.attack_anim_frame//5)], 180), self.camera.apply_coord(self.player.pos.x - 96, self.player.pos.y - 32))
             elif(self.player.rot_angle == 270):
-                self.screen.blit(pg.transform.rotate(self.player.attack_frames[self.player.attack_anim_frame//5], 270), self.camera.apply_coord(self.player.pos.x - 32, self.player.pos.y + 32))
+                self.screen.blit(pg.transform.rotate(self.player.attack_frames[int(self.player.attack_anim_frame//5)], 270), self.camera.apply_coord(self.player.pos.x - 32, self.player.pos.y + 32))
             elif(self.player.rot_angle == 45):
-                self.screen.blit(pg.transform.rotate(self.player.attack_frames[self.player.attack_anim_frame//5], 45), self.camera.apply_coord(self.player.pos.x - 32, self.player.pos.y - 96))
+                self.screen.blit(pg.transform.rotate(self.player.attack_frames[int(self.player.attack_anim_frame//5)], 45), self.camera.apply_coord(self.player.pos.x - 32, self.player.pos.y - 96))
             elif(self.player.rot_angle == 135):
-                self.screen.blit(pg.transform.rotate(self.player.attack_frames[self.player.attack_anim_frame//5], 135), self.camera.apply_coord(self.player.pos.x - 96, self.player.pos.y - 96))
+                self.screen.blit(pg.transform.rotate(self.player.attack_frames[int(self.player.attack_anim_frame//5)], 135), self.camera.apply_coord(self.player.pos.x - 96, self.player.pos.y - 96))
             elif(self.player.rot_angle == 225):
-                self.screen.blit(pg.transform.rotate(self.player.attack_frames[self.player.attack_anim_frame//5], 225), self.camera.apply_coord(self.player.pos.x - 96, self.player.pos.y))
+                self.screen.blit(pg.transform.rotate(self.player.attack_frames[int(self.player.attack_anim_frame//5)], 225), self.camera.apply_coord(self.player.pos.x - 96, self.player.pos.y))
             elif(self.player.rot_angle == 315):
-                self.screen.blit(pg.transform.rotate(self.player.attack_frames[self.player.attack_anim_frame//5], 315), self.camera.apply_coord(self.player.pos.x, self.player.pos.y - 32))
+                self.screen.blit(pg.transform.rotate(self.player.attack_frames[int(self.player.attack_anim_frame//5)], 315), self.camera.apply_coord(self.player.pos.x, self.player.pos.y - 32))
 
-            self.player.attack_anim_frame += 1
-            if(self.player.attack_anim_frame//5 > 4):
+            self.player.attack_anim_frame += 100 * self.dt
+            #Termina a animação
+            if(int(self.player.attack_anim_frame//5) > 4):
                 self.player.attacking = False
                 self.player.attack_anim_frame = 0
 
@@ -312,13 +359,56 @@ class Game:
             textsurface = self.myfont.render("* Você observa 3 encaixes estranhos *", False, (255,255,255))
             self.screen.blit(textsurface,(WIDTH/2 - 130, HEIGHT - 30))
 
-
         textsurface = self.myfont.render('Dia: '+str(self.day), False, (255,255,255))
 
         self.screen.blit(textsurface,(10,10))
 
         pg.display.flip()
 
-g = Game()
-g.new()
-g.run()
+class Menu:
+    def __init__(self):
+        pg.init()
+        self.screen = pg.display.set_mode((WIDTH, HEIGHT))
+        pg.display.set_caption(TITLE)
+        game_folder = path.dirname(__file__)
+        img_folder = path.join(game_folder, 'images')
+        self.button1 = pg.image.load(path.join(img_folder, BUTTON1_IMG)).convert_alpha()
+        self.button2 = pg.image.load(path.join(img_folder, BUTTON2_IMG)).convert_alpha()
+        self.background_img = pg.image.load(path.join(img_folder, BACKGROUND_IMG)).convert_alpha()
+
+    def run(self):
+        while(1):
+            self.screen.fill((0,0,0))
+            self.screen.blit(self.background_img, (0,0))
+            self.screen.blit(self.button1, (WIDTH/2 - BUTTON_WIDTH/2, HEIGHT/2 - BUTTON_HEIGHT/2 - 50))
+            self.rect_b1 = pg.Rect((WIDTH/2 - BUTTON_WIDTH/2, HEIGHT/2 - BUTTON_HEIGHT/2 - 50), (BUTTON_WIDTH, BUTTON_HEIGHT))
+            self.screen.blit(self.button2, (WIDTH/2 - BUTTON_WIDTH/2, HEIGHT/2 + 50))
+            self.rect_b2 = pg.Rect((WIDTH/2 - BUTTON_WIDTH/2, HEIGHT/2 + 50), (BUTTON_WIDTH, BUTTON_HEIGHT))
+            keys = pg.key.get_pressed()
+            aux_ponto = pg.mouse.get_pos()
+
+            pg.display.flip()
+            if keys[pg.K_ESCAPE]:
+                pg.quit()
+                break
+
+            #Testa se o jogador clicou no primeiro botão
+            if self.rect_b1.collidepoint(aux_ponto):
+                if pg.mouse.get_pressed()[0]:
+                    g = Game(self.screen)
+                    g.new()
+                    g.run()
+
+            #Testa se o jogador clicou no segundo botão
+            elif self.rect_b2.collidepoint(aux_ponto):
+                if pg.mouse.get_pressed()[0]:
+                    pg.quit()
+                    break
+
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
+                    break
+
+m = Menu()
+m.run()
